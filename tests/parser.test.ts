@@ -24,7 +24,7 @@ async function readStoredZip(blob: Blob): Promise<Map<string, string>> {
 
 describe('CSV parsing', () => {
   it('supports quoted commas, escaped quotes, and line breaks', () => {
-    expect(parseCsvRows('type,note\r\nHeartRate,"resting, \"\"calm\"\""\r\nSteps,"two\nlines"')).toEqual([
+    expect(parseCsvRows('type,note\r\nHeartRate,"resting, ""calm"""\r\nSteps,"two\nlines"')).toEqual([
       ['type', 'note'],
       ['HeartRate', 'resting, "calm"'],
       ['Steps', 'two\nlines']

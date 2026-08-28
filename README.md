@@ -48,9 +48,14 @@ run `npx playwright install chromium` once.
 
 ```sh
 npm test          # unit + Chromium end-to-end, axe, mobile, and offline checks
+npm run lint      # ESLint for application, test, and build TypeScript
 npm run build     # reproducible production build in ./dist
 npm run preview   # serve ./dist at http://127.0.0.1:4173
 ```
+
+To run the same browser matrix against the deployed app, set
+`PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in` before
+`npm run test:e2e`.
 
 `dist/index.html` is the static deployment entry. `/privacy/` and `/terms/`
 are emitted as standalone pages.
