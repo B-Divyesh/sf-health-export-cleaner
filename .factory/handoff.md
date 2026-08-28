@@ -1,72 +1,57 @@
-# Health Export Cleaner — build handoff
+# Health Export Cleaner — verification handoff
 
-## What shipped
+## Status: FAIL
 
-- A responsive Vite + vanilla TypeScript PWA at `dist/index.html`.
-- Local CSV and Apple Health XML inspection with explicit 100 MB and 500,000
-  record safety limits, malformed-input errors, quoted CSV support, XML entity
-  decoding, and source-format warnings.
-- Date-range and record-type filtering, user-selectable safe fields, mandatory
-  blocking of common identifiers/device/location/GPS/route fields, and exact,
-  hour, or day timestamp precision.
-- Live output counts, a five-row cleaned preview, removal receipt, residual-risk
-  warning, and one ZIP download containing the cleaned CSV plus a plain-text
-  provenance note.
-- No health-record persistence or network processing. IndexedDB stores only the
-  timestamp-precision preference; preferences can be exported/imported as JSON.
-- Installable manifest, 192/512/maskable icons, versioned service-worker caches,
-  navigation fallback, explicit offline state, and an in-app update prompt.
-- `/privacy/` and `/terms/` pages, robots/sitemap, MIT license, and expanded
-  README.
-- Product-specific concrete-and-moss visual system and reviewed original hero
-  artwork. The source prompt and provenance are in `.factory/design.md` and
-  `assets/src/sorting-bench.json`; AVIF, WebP, and JPEG derivatives ship under
-  `public/assets/`.
+Independent verification of candidate
+`afa5b0078044fc0e5691b4626e5a0bc5a2d02ae7` and
+<https://health-export-cleaner.sociobot.in> found a release-blocking privacy
+defect. The live deployment is not stale: all 20 production artifacts match the
+candidate build byte-for-byte.
 
-## Verification
+The blocker is that common compact/camelCase identifier columns—including
+`patientId`, `participantID`, `recordId`, `patientName`, and `emailAddress`—are
+kept by default and exported unchanged despite the UI promise that common
+identifiers are locked out. Full evidence, lower-severity findings, and the
+re-verification checklist are in [verification.md](verification.md).
 
-Run from a clean checkout with Node.js 20+:
+## What was verified
+
+- Clean `npm ci`, repository unit/end-to-end suite, TypeScript check, and exact
+  production build.
+- CSV and Apple Health XML paths, ZIP/CSV/provenance contents, date/type/field
+  filtering, timestamp precision, malformed and empty inputs, 100 MB and
+  500,000-record boundaries, and recovery.
+- Local-only network behavior and storage boundaries.
+- Live artifact identity, response/security/cache headers, and absence of
+  server APIs/auth/payment flows.
+- Desktop and 390 px mobile layout, keyboard flow, focus, reduced motion,
+  default Axe scans, legal pages, and console/page errors.
+- Manifest/installability, live offline reload, service-worker update check,
+  and a full local update-activation simulation.
+- Lighthouse mobile: 100/100/100/100; LCP 1.2 s, CLS 0, TBT 0 ms, 62 KiB
+  initial transfer.
+
+## Commands for re-verification
 
 ```sh
 npm ci
 npm test
 npm run build
+npm run preview
 ```
 
-Verified on 2026-08-28:
+No standalone lint command exists. The application is a static PWA, so library
+packing, backend concurrency/persistence, API rate limiting, and Entra sign-in
+checks are not applicable.
 
-- `npm test`: 10 unit tests and 4 Chromium end-to-end tests passed.
-- End-to-end coverage includes sample cleaning/download, mandatory field
-  removal visibility, 390 × 844 mobile layout, Axe scans in empty/configured
-  states, and a service-worker-controlled offline reload followed by cleaning.
-- The generated ZIP was separately tested with `unzip -t`; both the cleaned CSV
-  and provenance note passed integrity checks and their contents were reviewed.
-- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173 …`: HTTP 200, no console or
-  page errors, one `<h1>`, `lang="en"`, a main landmark, and zero images missing
-  alt text.
-- Lighthouse 12.8.2 mobile: Performance 100, Accessibility 100, Best Practices
-  100, SEO 100; LCP 1.5 s, CLS 0, Total Blocking Time 10 ms, max potential input
-  delay 60 ms.
-- Production main bundle: 18.2 KB JS and 14.8 KB CSS uncompressed. Hero: 67 KB
-  AVIF, 121 KB desktop WebP, 47 KB mobile WebP, and 213 KB JPEG fallback; no
-  downloaded fonts or third-party runtime resources.
+## Required next work
 
-## Known limits
+1. Block common compound identifier/name/email variants and prove the values
+   are absent from the downloaded archive.
+2. Fix field-state labels that continue to say `Kept` after deselection.
+3. Fix the no-fields recovery message.
+4. Address or explicitly disposition the caching, response-header, mobile
+   target-size, and experimental accessible-name findings.
+5. Deploy the corrected candidate and repeat the complete local/live matrix.
 
-- Apple Health XML v1 reads `<Record>` elements only. It intentionally omits
-  workouts, workout routes, clinical records, ActivitySummary, and nested
-  metadata, and reports this when present.
-- Parsing is in-memory and deliberately rejects files over 100 MB or 500,000
-  records. Very large Apple Health archives should be split before use.
-- CSV field detection is name-based. Vendor-specific sensitive columns and
-  identifying free text may evade automatic blocking, so the UI and provenance
-  note require a human review and never claim anonymization.
-- The utility emits normalized CSV rather than recreating vendor-specific XML.
-
-## Suggested next steps
-
-- Validate type/date aliases against additional real vendor export fixtures.
-- Move parsing to a Web Worker and add streaming output if the supported file
-  ceiling needs to grow.
-- Add optional first-party page-count telemetry only after a privacy review; v1
-  intentionally ships with none.
+Product code was not changed during this verification.
