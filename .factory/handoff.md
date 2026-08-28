@@ -1,4 +1,43 @@
-# Health Export Cleaner — repair handoff
+# Health Export Cleaner — verification handoff
+
+## Status: FAIL — candidate `0c87aa0267cd4e27197d19afad9b74cbf63c0c07`
+
+Independent verification on 2026-08-28 found that the live deployment at
+<https://health-export-cleaner.sociobot.in> matches this candidate byte-for-byte
+for its primary HTML, manifest, service worker, JS, and CSS. Core product
+behaviour passes: clean install, unit tests, lint, type/build, nine declared
+claim tests, local-first demo, CSV/XML cleaning, ZIP/provenance output,
+offline reload/fallback, service-worker update coverage, mobile/keyboard,
+and Axe serious/critical checks.
+
+**Release blocker:** visitor-facing claims remain outside the mandatory
+`.factory/claims.json` contract. In particular, “No account or installation
+required,” “Free, local, and inspectable,” the no-third-party-runtime claim,
+and additional README support/behaviour promises have no declared
+demo-sandbox test. Per the claims contract, this is a FAIL until each is tested
+and listed or removed/narrowed. The hashed JS/CSS also use one-hour
+must-revalidate caching rather than immutable caching (non-blocking medium
+finding).
+
+Full evidence, exact commands, and severity-ranked findings are in
+`.factory/verification-5.md`.
+
+## How to verify
+
+```sh
+npm ci
+npm test
+npm run lint
+npm run build
+PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
+```
+
+Run each command in `.factory/claims.json` separately against `/demo` after
+the claim-contract repair. No product code was changed by this verifier.
+
+---
+
+# Prior repair handoff
 
 ## Status: PASS — deployed
 
