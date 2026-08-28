@@ -19,7 +19,7 @@ light concrete treatment also makes the privacy boundary more tangible.
 | Concrete | `#E8E5DC` | Page background |
 | Chalk | `#F7F5EE` | Work surface |
 | Charcoal | `#171A17` | Primary text and structural rules |
-| Weathered | `#5B6058` | Secondary text (7:1+ on Chalk) |
+| Weathered | `#4F554D` | Secondary text (7:1+ on Chalk) |
 | Moss | `#315C36` | Primary action, selected data |
 | Moss dark | `#1E3B22` | Hover and strong status |
 | Lichen | `#C8D3B8` | Selected/allowed background |
@@ -114,4 +114,3 @@ neon, gradients, generic cyber-security symbols, blood, and hospital imagery.
 - Generated imagery is disclosed in the product footer. Functional line icons
   are original, authored in the application source, and MIT-licensed with the
   repository.
-
