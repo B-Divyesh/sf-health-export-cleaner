@@ -5,6 +5,12 @@
       "rewrite": "/index.html"
     },
     {
+      "route": "/compiled/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
       "route": "/assets/*",
       "headers": {
         "Cache-Control": "public, max-age=3600, must-revalidate"

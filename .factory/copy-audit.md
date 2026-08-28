@@ -59,6 +59,10 @@ after the repair. All are 22 words or fewer and use none of the banned terms.
 | Change the sample freely. | 4 | Pass |
 | It stays separate from your cleaner preferences. | 7 | Pass |
 | A safer, newer version is ready. | 6 | Pass |
+| Free to use. | 3 | Pass |
+| MIT-licensed source code. | 3 | Pass |
+| Built by Param Factory. | 4 | Pass |
+| Illustration generated for this product. | 5 | Pass |
 
 Labels, field names, counters, dates, sample values, and legal links are not
 sentences. They are intentionally short, literal controls or data labels.

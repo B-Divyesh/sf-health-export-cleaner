@@ -10,6 +10,11 @@ export default defineConfig({
         notFound: resolve(process.cwd(), '404.html'),
         privacy: resolve(process.cwd(), 'privacy/index.html'),
         terms: resolve(process.cwd(), 'terms/index.html')
+      },
+      output: {
+        entryFileNames: 'compiled/[name]-[hash].js',
+        chunkFileNames: 'compiled/[name]-[hash].js',
+        assetFileNames: 'compiled/[name]-[hash][extname]'
       }
     }
   }

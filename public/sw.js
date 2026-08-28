@@ -1,4 +1,4 @@
-const VERSION = 'health-cleaner-v5';
+const VERSION = 'health-cleaner-v6';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const SHELL = [
@@ -26,7 +26,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then(async (cache) => {
     await cache.addAll(SHELL);
     const html = await fetch('/').then((response) => response.text());
-    const builtAssets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map((match) => match[1]);
+    const builtAssets = [...html.matchAll(/(?:src|href)="(\/(?:assets|compiled)\/[^"?#]+)"/g)].map((match) => match[1]);
     await cache.addAll([...new Set(builtAssets)]);
   }));
 });

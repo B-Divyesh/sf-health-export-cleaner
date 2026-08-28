@@ -14,6 +14,27 @@
     "sandbox": "fresh /demo context opens the shipped CSV sample and a minimal Apple Health Record XML file"
   },
   {
+    "id": "no-setup",
+    "claim": "Inspect and export a health file without an account or installation.",
+    "where": "landing intake panel and README",
+    "test": "npm run test:e2e -- --grep @claim:no-setup",
+    "sandbox": "fresh browser context opens /demo with no account state or installed app, then downloads the sample clean package"
+  },
+  {
+    "id": "free-source",
+    "claim": "The utility is free to use and links to its MIT-licensed source code.",
+    "where": "landing footer, Terms, and README",
+    "test": "npm run test:e2e -- --grep @claim:free-source",
+    "sandbox": "fresh /demo context verifies the free/source statement, repository link, absence of checkout UI, and repository MIT license"
+  },
+  {
+    "id": "first-party-runtime",
+    "claim": "No third-party runtime scripts, fonts, analytics, or trackers are included.",
+    "where": "privacy notice and README",
+    "test": "npm run test:e2e -- --grep @claim:first-party-runtime",
+    "sandbox": "fresh /demo context records the whole load and clean/download flow; assert every request and runtime script or stylesheet is same-origin and no API request occurs"
+  },
+  {
     "id": "local-processing",
     "claim": "Health records stay on this device and are not uploaded or retained.",
     "where": "landing facts, cleaner, privacy notice, README",
@@ -33,6 +54,27 @@
     "where": "landing lede and field-selection help",
     "test": "npm run test:e2e -- --grep @claim:identifier-removal",
     "sandbox": "fresh /demo context uploads a CSV containing direct identifiers and location; inspect the downloaded ZIP CSV"
+  },
+  {
+    "id": "minimization-controls",
+    "claim": "Filters by date and record type, removes chosen fields, and reduces timestamps to day or hour.",
+    "where": "landing cleaner and README",
+    "test": "npm run test:e2e -- --grep @claim:minimization-controls",
+    "sandbox": "fresh /demo context sets a date boundary, removes a record type and field, selects hour precision, and inspects the downloaded CSV"
+  },
+  {
+    "id": "csv-conventions",
+    "claim": "CSV detects recorded_at, excludes rows without usable dates under a boundary, and groups files without a type column as CSV record.",
+    "where": "landing date help and README supported sources",
+    "test": "npm run test:e2e -- --grep @claim:csv-conventions",
+    "sandbox": "fresh /demo context uploads bounded and no-type CSV fixtures; assert omitted rows, recorded_at bounds, grouping warning, and disabled empty export"
+  },
+  {
+    "id": "apple-record-scope",
+    "claim": "Apple Health XML imports Record entries only and omits workouts, routes, clinical records, ActivitySummary, and nested metadata.",
+    "where": "landing limits and README supported sources",
+    "test": "npm run test:e2e -- --grep @claim:apple-record-scope",
+    "sandbox": "fresh /demo context uploads XML with one Record and uniquely marked unsupported sections; inspect source count, warning, and ZIP output"
   },
   {
     "id": "clean-package",
@@ -61,5 +103,12 @@
     "where": "README",
     "test": "npm run test:e2e -- --grep @claim:strict-parser",
     "sandbox": "fresh /demo context uploads malformed CSV then unrelated XML and asserts the specific errors and sample recovery"
+  },
+  {
+    "id": "preference-portability",
+    "claim": "Exports and imports only the timestamp-precision preference, never health records.",
+    "where": "landing preference tools and README demo/privacy sections",
+    "test": "npm run test:e2e -- --grep @claim:preference-portability",
+    "sandbox": "fresh /demo context exports hour precision and verifies the exact JSON, then imports day precision and observes the selected control"
   }
 ]
