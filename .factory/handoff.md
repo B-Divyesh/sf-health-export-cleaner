@@ -72,7 +72,12 @@ to this offline PWA.
 
 ## Known gaps / next steps
 
-There are no known product gaps from verification 6. After the static host
-publishes this commit, rerun the live Playwright suite with
+There are no known product gaps from verification 6. Repair commit
+`5a9b85f` was pushed to `origin/main`; this repository has no deployment
+script or GitHub Actions workflow, and the supplied static host was still
+serving its prior `compiled/main-3nLrdEhL.js` bundle after the push (the local
+build is `compiled/main-DEx0LcPX.js`). The configured static publisher had not
+completed within this worker session. Once it does, rerun the live Playwright
+suite with
 `PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e`
 to confirm deployment parity and live identity.
