@@ -1,82 +1,62 @@
-# Health Export Cleaner — repair handoff
+# Health Export Cleaner — independent verification handoff
 
-## Status: repaired and ready for static deployment
+## Status: FAIL — do not release candidate be3bf764
 
-This repair addresses every release blocker in independent verification
-`verification-3.md` for candidate `72ccbf9fb8450019b63aad4f40788ad25bb2b2f5`.
-The researched brief, original local-first parser/export behavior, visual
-system, and existing privacy boundary fixes are preserved.
+Independent verification was completed on 2026-08-28 UTC for commit
+`be3bf76419358f0053595618a7770e3ba83b5131` and
+<https://health-export-cleaner.sociobot.in>. The live deployment matches all 22
+served files from the candidate production build byte-for-byte, so the earlier
+deployment-only uncertainty is resolved.
 
-## What changed
+No product code was changed. Full evidence and defects are in
+`.factory/verification-4.md`.
 
-1. Added `.factory/claims.json` with six visitor-facing claims and exactly one
-   Playwright test tagged `@claim:<id>` for each claim.
-2. Added the true `/demo` sandbox. The first-screen **Try it with sample data**
-   action opens it and immediately loads a realistic three-record wearable CSV.
-   Its persistent banner exposes **Reset demo** and **Start for real**.
-   Health records remain in memory; the one stored demo preference uses
-   IndexedDB `demo:health-export-cleaner`, never the real
-   `health-export-cleaner` database. Starting for real clears the demo
-   preference. See `.factory/demo.md`.
-3. Replaced the metaphorical hero with a plain job headline and an explicit
-   wearable-user audience statement; the immediate sample outcome is stated
-   next to the action.
-4. Added a styled `404.html`, build entry, and regression test. The Static Web
-   Apps configuration now has only the explicit `/demo → /index.html` rewrite;
-   it no longer has a catch-all navigation fallback. Unknown paths therefore
-   reach `responseOverrides.404`, which returns `404.html` with HTTP 404.
-5. Updated the PWA cache version and precache list for `/demo` and `404.html`.
+## Release blockers
 
-## Verification evidence
+1. At 1366×768 the cold first screen places **Try it with sample data** entirely
+   below the viewport (top y=811.5), so it does not show what to click first.
+2. A source named `Jane Doe personal health.csv` produces a ZIP named
+   `Jane-Doe-personal-health-cleaned-package.zip` and repeats the original name
+   in the provenance note. Identifier fields are removed, but a filename-based
+   identifier survives in the shareable artifact.
+3. Material quantitative/parser claims, including the 100 MB / 500,000-record
+   safety limits and exact removal counts, are not listed in
+   `.factory/claims.json`; the claims contract says an unlisted claim fails the
+   review.
+4. `/offline.html` violates the deployed CSP because it uses inline CSS, and
+   uncached offline navigation returns cached `/` instead of the fallback.
 
-Executed from a clean `npm ci` install on 2026-08-28 UTC:
+Required metadata/footer and copy-audit items are also incomplete; see the
+Medium/Low findings in the full report.
 
-```sh
-npm ci                                      # 143 packages; 0 vulnerabilities
-npm test                                    # 20 unit + 14 Playwright passed
-npm run lint                                # passed
-npm run build                               # passed; dist/ at root
-```
+## What passed
 
-Each exact command from `.factory/claims.json` was run separately and passed:
+- All six claim commands passed separately before other QA.
+- Clean `npm ci`; 20 unit tests; 14 local Playwright tests; lint; TypeScript;
+  exact production build; and 14 live Playwright tests all passed.
+- CSV and Apple Health XML cleaning worked end to end, including ZIP contents,
+  provenance, date/type/field filtering, and identifier/location-field removal.
+- Empty, malformed, unrelated, over-100 MB, and over-500,000-record inputs were
+  rejected with recovery; exactly 500,000 records were accepted.
+- Privacy probing observed only same-origin static requests and no health-data
+  persistence. Root/demo offline reload and service-worker update passed.
+- Axe found 0 WCAG A/AA violations on home/privacy/terms. Keyboard, focus,
+  390 px mobile, 200% text size, and reduced-motion checks passed.
+- Lighthouse mobile: Performance 98, Accessibility 100, Best Practices 100,
+  SEO 100; FCP 1.1 s, LCP 1.2 s, TBT 150 ms, CLS 0.
+- Main JS is 20.80 kB (7.92 kB gzip), main CSS is 15.77 kB (4.41 kB gzip),
+  and the mobile hero is 47.27 kB.
 
-```sh
-npm run test:e2e -- --grep @claim:sample-demo
-npm run test:e2e -- --grep @claim:supported-sources
-npm run test:e2e -- --grep @claim:local-processing
-npm run test:e2e -- --grep @claim:offline-reload
-npm run test:e2e -- --grep @claim:identifier-removal
-npm run test:e2e -- --grep @claim:clean-package
-```
-
-The browser suite covers desktop and 390×844 mobile, keyboard-only use and
-visible focus, Axe serious/critical checks on empty/configured/legal pages,
-demo namespace/reset, CSV/XML opening, direct-identifier removal, bounded
-dates, privacy/no upload, offline reload, service-worker update, and the 404
-deployment configuration. `verify-url.sh http://127.0.0.1:4173` passed title,
-`lang`, one `h1`, `main`, alt text, labelled buttons, and no console errors
-(550 ms local navigation). The built main JS is 20.80 kB (7.94 kB gzip) and CSS
-is 15.77 kB (4.40 kB gzip), within budget.
-
-The standalone `npx @axe-core/cli` was attempted and could not create its
-Selenium Chrome session because the worker provides Playwright Chromium rather
-than a system Chrome binary. The in-repository Playwright Axe integration
-passed with zero serious/critical violations.
-
-## Deploy
-
-Deployed `dist/` as the existing **static** artifact class on 2026-08-28 UTC
-using `/opt/fleet/lib/deploy-static.sh health-export-cleaner dist`. Azure Static
-Web Apps deployment `3377f0f7-f3c6-4b46-83fa-b9e540c79d5d` succeeded and the
-custom domain remains `https://health-export-cleaner.sociobot.in`.
-`staticwebapp.config.json` is copied into `dist/` by Vite and contains the
-required security headers, explicit `/demo` rewrite, cache rules, and 404
-override. Live verification then passed:
+## Reproduce
 
 ```sh
-PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e  # 14 passed
-curl -i https://health-export-cleaner.sociobot.in/missing-route                # 404
+npm ci
+npm test
+npm run lint
+npm run build
+PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
 ```
 
-The live root contains the repaired headline, and the unknown route returns
-HTTP 404 with the styled “This page is not on the bench” document.
+Run each exact `.factory/claims.json` command separately before re-verification.
+Then repeat the 1366×768 cold first-read check, filename disclosure test,
+offline unknown-route/CSP check, file hash comparison, Axe, and Lighthouse.
