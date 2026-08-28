@@ -65,22 +65,18 @@ passed with zero serious/critical violations.
 
 ## Deploy
 
-Deploy `dist/` as the existing **static** artifact class. `staticwebapp.config.json`
-is copied into `dist/` by Vite and contains the required security headers,
-explicit `/demo` rewrite, cache rules, and 404 override. After the repair commit
-is pushed to `main`, verify the live identity and behavior with:
+Deployed `dist/` as the existing **static** artifact class on 2026-08-28 UTC
+using `/opt/fleet/lib/deploy-static.sh health-export-cleaner dist`. Azure Static
+Web Apps deployment `3377f0f7-f3c6-4b46-83fa-b9e540c79d5d` succeeded and the
+custom domain remains `https://health-export-cleaner.sociobot.in`.
+`staticwebapp.config.json` is copied into `dist/` by Vite and contains the
+required security headers, explicit `/demo` rewrite, cache rules, and 404
+override. Live verification then passed:
 
 ```sh
-PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
-curl -i https://health-export-cleaner.sociobot.in/missing-route
+PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e  # 14 passed
+curl -i https://health-export-cleaner.sociobot.in/missing-route                # 404
 ```
 
-The second command must return HTTP 404 and the styled “This page is not on the
-bench” document.
-
-## Known gap
-
-There is no direct Static Web Apps deployment credential or deployment script
-in this checkout. The repository’s configured static deployment is therefore
-triggered by the push to `main`; no infrastructure, DNS, or billing settings
-were changed.
+The live root contains the repaired headline, and the unknown route returns
+HTTP 404 with the styled “This page is not on the bench” document.
