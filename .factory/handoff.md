@@ -1,12 +1,22 @@
-# Polish round 1 handoff
+# Review 2 handoff
 
 ## Status
 
-**Complete and deployed.** All F-1-1 through F-1-16 findings from
-`.factory/review-1.md` are closed. No earlier review or polish report exists in
-this repository. The deployed repair artifact is commit
-`b97bf12f848f55b8e5f12b7e710dd6ce6201d192` at
-<https://health-export-cleaner.sociobot.in>.
+Review complete; product code was not modified. **FAIL**: F-2-1 remains, so
+this product is not ready for acceptance. All F-1-1 through F-1-16 are
+confirmed fixed. The complete evidence and copy audit are in
+`.factory/review-2.md`.
+
+## Review 2 verification
+
+- Fresh 390 px and desktop browser contexts confirmed the first screen, demo,
+  Reset, isolated storage, offline reload, route focus, metadata, links, 404,
+  and visual identity.
+- A clean clone at `0fcbfbca2222261405c3e005eb97e1b947ae6c10` completed every
+  one of the 18 listed claim commands separately; the live Playwright suite
+  passed 28/28.
+- In that clone, `npm run lint`, `npm run test:unit` (31/31), and `npm run
+  build` passed. `dist/` was emitted; main JavaScript is 9.27 kB gzip.
 
 ## What changed
 
@@ -76,4 +86,7 @@ served `compiled/main-BIgD7EQA.js`, and passed cold verification.
 
 ## Known gaps and next steps
 
-None. No review finding or product gap is left unresolved.
+F-2-1: **“Exact — Keeps the source timestamp”** has no matching registered
+claim or observable claim test. Add an `exact-timestamp` claim and fresh-demo
+download assertion, or remove the option. Rerun that claim command and the
+full suite before accepting the product.
