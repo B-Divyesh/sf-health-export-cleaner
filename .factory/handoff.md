@@ -1,129 +1,59 @@
-# Health Export Cleaner — repair handoff
+# Independent verification handoff — candidate 6
 
-## Status: PASS — repaired and deployed
+## Status: FAIL — do not release
 
-Work order `health-export-cleaner-repair-5` repaired the release blocker in
-independent report commit `47900f35f12d019d2e7da6f9d7bc7f39915349e0`
-for candidate `0c87aa0267cd4e27197d19afad9b74cbf63c0c07`.
-The product repair is commit `98e216d145cee68754a06136fd46c0c1ac5654d3`.
+**Candidate:** `6a42d313e4ecb71ea3d89572a5a52b41986231bf` (`main`)
 
-The exact production build was deployed on 2026-08-28 UTC to the configured
-Azure Static Web App `sf-health-export-cleaner`. The custom domain is
-<https://health-export-cleaner.sociobot.in>.
+**Verified URL:** <https://health-export-cleaner.sociobot.in>
 
-## Findings repaired
+**Date:** 2026-08-28 UTC
 
-### HEC-QA5-1 — claims contract (release blocker)
+No product code was changed. The verification record is
+`.factory/verification-6.md`.
 
-- Expanded `.factory/claims.json` from 9 to 16 independently runnable claims.
-  The new declarations cover no-account/no-install use, free MIT-licensed
-  source, first-party-only runtime resources, CSV conventions, Apple Health
-  XML scope, all minimization controls, and preference portability.
-- Added one observable `@claim:<id>` Playwright test for every retained claim.
-  Each starts from `/demo` in a fresh browser context and verifies the promised
-  result, not just the presence of a control.
-- Strengthened privacy coverage to inspect the IndexedDB value and confirm it
-  contains only timestamp precision. The request test now begins before page
-  navigation, exercises a complete download flow, and proves every runtime
-  request/script/stylesheet is same-origin.
-- Added `tests/claims.test.ts`. It rejects duplicate claim IDs, missing or
-  duplicate test tags, undeclared tags, malformed test commands, and product or
-  README claim markers that do not map to the contract.
-- Marked claim-bearing landing copy with `data-claim` and README copy with
-  `claim:<id>` comments. The verifier-cited promises remain visible and are now
-  explicit contract surfaces.
+## Release-blocking findings
 
-### HEC-QA5-2 — immutable hashed assets (non-blocking medium)
+- **High — HEC-QA6-1:** malformed Apple XML can keep the synchronous parser on
+  the browser main thread for too long. A 680,012-byte string containing
+  40,000 unclosed `<Record type="x">` starts took 8,185 ms before rejection.
+  This is well below the advertised 100 MB intake limit and does not meet the
+  brief's requirement to handle malformed exports safely.
+- **High — HEC-QA6-2:** the text-based XML matcher accepts records inside XML
+  comments and accepts an incomplete `<HealthData>` document. On production,
+  a comment containing `COMMENT-ONLY-SECRET` appeared as a source record and
+  in the preview. These are not valid Apple Health record semantics.
+- **Medium, release-blocking — HEC-QA6-3:** the declared `strict-parser` claim
+  says malformed quoted CSV is rejected, but
+  `HeartRate,2026-08-28,"72"trailing-junk` is accepted and exported as
+  `72trailing-junk`. The claim test covers only an unclosed quote, so the
+  claim exceeds the verified behavior.
 
-- Vite now emits content-hashed application JS/CSS to `/compiled/`.
-- Static Web Apps gives only `/compiled/*` a one-year immutable cache policy.
-  Stable generated artwork under `/assets/*` remains at one-hour revalidation.
-- Service-worker cache version `v6` discovers and precaches both compiled and
-  stable assets. A browser regression checks the build paths and both policies.
+## Evidence that passed
 
-The researched brief, local-first architecture, generated visual identity,
-cleaning behavior, artifact class, and static deployment class are unchanged.
+- `npm ci` completed with 143 packages and no reported vulnerabilities.
+- Every one of the 16 commands in `.factory/claims.json` passed separately
+  through the demo entry point.
+- `npm test` passed: 24 Vitest and 27 local Playwright tests.
+- `npm run lint` and the exact `npm run build` passed; `dist/` was produced.
+- The deployed 27-test Playwright suite passed. All 24 deployable local files
+  matched the live response bytes by SHA-256.
+- Cold live first-read passed: it plainly says it cleans a health export before
+  sharing for wearable users, and the first action is **Try it with sample
+  data**. One click loads the persistent isolated demo banner and sample data.
+- Desktop and 390px mobile checks found no horizontal overflow; keyboard path,
+  visible focus, reduced-motion handling, service-worker update/offline reload,
+  privacy/network checks, and Playwright Axe serious/critical checks passed.
+- `verify-url.sh` passed on production: HTTP 200, title, `lang`, one `h1`,
+  `main`, image alternatives, labeled controls, and no console/page errors.
+- Production headers include HSTS, same-origin CSP, `nosniff`, frame denial,
+  strict referrer policy, and restrictive permissions policy. Hashed compiled
+  assets are immutable; `sw.js` is no-store. There is no backend/API, account,
+  payment, or sign-in endpoint, so rate-limit and Entra checks do not apply.
 
-## Local verification
+## Next step
 
-Run from the repository root:
-
-```sh
-npm ci
-npm test
-npm run lint
-npm run build
-npm run preview
-```
-
-Evidence from the clean repair tree:
-
-- `npm ci`: 143 packages installed; 0 vulnerabilities.
-- `npm test`: 24/24 Vitest tests and 27/27 Playwright tests passed.
-- `npm run lint`: passed.
-- `npm run build`: TypeScript and Vite passed; `dist/` was produced.
-- Claims gate: all 16 exact commands from `.factory/claims.json` were run
-  separately; 16/16 passed with exactly one matching test each.
-- Built application payload: main JS 21.20 kB (7.99 kB gzip), preload JS
-  0.71 kB (0.40 kB gzip), main CSS 15.86 kB (4.43 kB gzip), and the mobile
-  hero WebP 47,268 bytes. All remain inside the product budgets.
-- `/opt/fleet/lib/verify-url.sh` against local production preview: HTTP 200,
-  558 ms navigation, no console/page errors, title and `lang` present, one
-  `h1`, a `main`, no missing image alternatives, and no unlabeled buttons.
-- Local Lighthouse 12.8.2 desktop audit: Performance 100, Accessibility 100,
-  Best Practices 100, SEO 100; FCP 0.3 s, LCP 0.4 s, TBT 0 ms, CLS 0.
-
-## Browser, accessibility, privacy, and PWA evidence
-
-- Desktop 1366px and mobile 390×844 were visually reviewed from production
-  screenshots. The 390px test has no horizontal overflow and verifies 44px
-  navigation targets.
-- Axe Playwright integration found zero serious/critical violations on the
-  empty cleaner, configured cleaner, Privacy, and Terms. The keyboard-only
-  path covers skip-link focus, sample loading, all controls, and ZIP download.
-- Reduced motion remains explicitly handled. No autoplay, flashing, remote
-  fonts, third-party scripts, analytics, or trackers are present.
-- Privacy coverage uploads unique health values, records all network activity,
-  inspects Cache Storage and IndexedDB, reloads, and confirms the values and
-  filename were neither sent nor retained.
-- Offline coverage installs the service worker, reloads `/demo` offline, and
-  verifies the cleaner and sample remain usable. An uncached offline route gets
-  the styled fallback without CSP-blocked inline CSS. The update toast and
-  `skipWaiting` refresh flow pass.
-- Package/consumer verification is not applicable: this is a static PWA, not a
-  published package. API/rate-limit checks are not applicable because it has no
-  backend, account, billing, or API endpoint.
-
-## Deployment and live verification
-
-Deployment used the repository's `dist/` and
-`public/staticwebapp.config.json`:
-
-```sh
-swa deploy dist --env production --deployment-token "$repair_deploy_token"
-```
-
-The token was fetched at runtime from the configured Azure resource and was
-not printed or stored in the repository.
-
-- `PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run
-  test:e2e`: 27/27 passed, including all claims, mobile, keyboard, Axe, privacy,
-  offline/update, metadata, 404, and cache regressions.
-- All 24 deployed application files (excluding deployment-only
-  `staticwebapp.config.json`) matched local `dist/` byte-for-byte by SHA-256.
-- Live `verify-url.sh`: HTTP 200, 734 ms navigation, zero console/page errors,
-  and all title/language/landmark/image/control checks passed.
-- Live Lighthouse 12.8.2: Performance 100, Accessibility 100, Best Practices
-  100, SEO 100; FCP 0.2 s, LCP 0.3 s, TBT 0 ms, CLS 0.
-- Hashed `/compiled/main-3nLrdEhL.js` returns
-  `Cache-Control: public, max-age=31536000, immutable`. Stable hero artwork
-  returns `public, max-age=3600, must-revalidate`.
-- Live responses include HSTS, same-origin CSP, `nosniff`, frame denial,
-  strict referrer policy, and restrictive permissions policy.
-- `POST`, `PUT`, and `DELETE /` return 405; `OPTIONS /` returns 204. An unknown
-  route returns HTTP 404 with the styled “This page is not on the bench” page.
-
-## Known gaps / next steps
-
-None. The app intentionally remains local-only and does not add accounts,
-remote processing, tracking, payment, or AI features.
+Replace regex XML extraction with bounded structural parsing that ignores
+comments and rejects malformed documents without prolonged main-thread work.
+Validate CSV quote state after a closing quote, then either test the full
+strict-parser promise or narrow that promise. Rerun all claim commands and
+boundary cases before redeploying.
