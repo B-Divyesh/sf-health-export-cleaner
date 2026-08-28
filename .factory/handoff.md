@@ -1,46 +1,86 @@
-# Health Export Cleaner — verification handoff
+# Health Export Cleaner — repair handoff
 
-## Status: FAIL — release blocked
+## Status: repaired and ready for static deployment
 
-Candidate `72ccbf9fb8450019b63aad4f40788ad25bb2b2f5` was independently tested
-against <https://health-export-cleaner.sociobot.in> on 2026-08-28 UTC. The live
-deployment matches the candidate: all 20 served application artifacts matched
-the local production build byte-for-byte.
+This repair addresses every release blocker in independent verification
+`verification-3.md` for candidate `72ccbf9fb8450019b63aad4f40788ad25bb2b2f5`.
+The researched brief, original local-first parser/export behavior, visual
+system, and existing privacy boundary fixes are preserved.
 
-Do **not** release this candidate. The required `.factory/claims.json` does not
-exist, so the required claim tests cannot be run. The first-screen one-click
-“Try it with sample data” demo is absent; `/demo` and `?demo=1` merely serve
-the normal app, have no demo banner/reset/start-for-real controls, and write
-the sample preference to normal `health-export-cleaner` IndexedDB storage.
+## What changed
 
-Full evidence, command results, passing core/PWA/privacy/accessibility checks,
-and remediation steps are in [verification-3.md](verification-3.md).
+1. Added `.factory/claims.json` with six visitor-facing claims and exactly one
+   Playwright test tagged `@claim:<id>` for each claim.
+2. Added the true `/demo` sandbox. The first-screen **Try it with sample data**
+   action opens it and immediately loads a realistic three-record wearable CSV.
+   Its persistent banner exposes **Reset demo** and **Start for real**.
+   Health records remain in memory; the one stored demo preference uses
+   IndexedDB `demo:health-export-cleaner`, never the real
+   `health-export-cleaner` database. Starting for real clears the demo
+   preference. See `.factory/demo.md`.
+3. Replaced the metaphorical hero with a plain job headline and an explicit
+   wearable-user audience statement; the immediate sample outcome is stated
+   next to the action.
+4. Added a styled `404.html`, build entry, and regression test. The Static Web
+   Apps configuration now has only the explicit `/demo → /index.html` rewrite;
+   it no longer has a catch-all navigation fallback. Unknown paths therefore
+   reach `responseOverrides.404`, which returns `404.html` with HTTP 404.
+5. Updated the PWA cache version and precache list for `/demo` and `404.html`.
 
-## What did pass
+## Verification evidence
+
+Executed from a clean `npm ci` install on 2026-08-28 UTC:
 
 ```sh
-npm ci
-npm test
-npm run lint
-npm run build
-PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
+npm ci                                      # 143 packages; 0 vulnerabilities
+npm test                                    # 20 unit + 14 Playwright passed
+npm run lint                                # passed
+npm run build                               # passed; dist/ at root
 ```
 
-The clean install, 20 unit tests, 11 local E2E tests, lint, build, and 11 live
-E2E tests passed. Live Lighthouse scored 100 in Performance, Accessibility,
-Best Practices, and SEO. The core local cleaner, ZIP export, offline reload,
-service-worker update, keyboard path, 390 px layout, and same-origin/no-upload
-checks passed.
+Each exact command from `.factory/claims.json` was run separately and passed:
 
-## Defects by severity
+```sh
+npm run test:e2e -- --grep @claim:sample-demo
+npm run test:e2e -- --grep @claim:supported-sources
+npm run test:e2e -- --grep @claim:local-processing
+npm run test:e2e -- --grep @claim:offline-reload
+npm run test:e2e -- --grep @claim:identifier-removal
+npm run test:e2e -- --grep @claim:clean-package
+```
 
-1. **Critical:** missing claims manifest and no tagged claim tests.
-2. **High:** no compliant first-screen demo or isolated demo sandbox; plain-word
-   first-read gate fails.
-3. **Medium:** unknown URLs return the root app with HTTP 200 instead of a real
-   404 page.
+The browser suite covers desktop and 390×844 mobile, keyboard-only use and
+visible focus, Axe serious/critical checks on empty/configured/legal pages,
+demo namespace/reset, CSV/XML opening, direct-identifier removal, bounded
+dates, privacy/no upload, offline reload, service-worker update, and the 404
+deployment configuration. `verify-url.sh http://127.0.0.1:4173` passed title,
+`lang`, one `h1`, `main`, alt text, labelled buttons, and no console errors
+(550 ms local navigation). The built main JS is 20.80 kB (7.94 kB gzip) and CSS
+is 15.77 kB (4.40 kB gzip), within budget.
 
-## Next steps
+The standalone `npx @axe-core/cli` was attempted and could not create its
+Selenium Chrome session because the worker provides Playwright Chromium rather
+than a system Chrome binary. The in-repository Playwright Axe integration
+passed with zero serious/critical violations.
 
-Implement the claims/demo/first-screen/404 remediation listed in
-`verification-3.md`, then re-run independent verification from a clean clone.
+## Deploy
+
+Deploy `dist/` as the existing **static** artifact class. `staticwebapp.config.json`
+is copied into `dist/` by Vite and contains the required security headers,
+explicit `/demo` rewrite, cache rules, and 404 override. After the repair commit
+is pushed to `main`, verify the live identity and behavior with:
+
+```sh
+PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
+curl -i https://health-export-cleaner.sociobot.in/missing-route
+```
+
+The second command must return HTTP 404 and the styled “This page is not on the
+bench” document.
+
+## Known gap
+
+There is no direct Static Web Apps deployment credential or deployment script
+in this checkout. The repository’s configured static deployment is therefore
+triggered by the push to `main`; no infrastructure, DNS, or billing settings
+were changed.

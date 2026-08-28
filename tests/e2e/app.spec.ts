@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFile } from 'node:fs/promises';
 
 function readStoredZip(bytes: Uint8Array): Map<string, string> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -29,10 +30,35 @@ async function downloadBytes(download: import('@playwright/test').Download): Pro
   return bytes;
 }
 
-test('cleans a sample end to end and exposes removals before download', async ({ page }) => {
-  await page.goto('/');
+test('@claim:sample-demo loads sample data in a separate disposable preference namespace', async ({ page }) => {
+  await page.goto('/demo');
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await page.getByRole('radio', { name: /Hour/ }).check();
+  await expect.poll(() => page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name))).toContain('demo:health-export-cleaner');
+  const databases = await page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name));
+  expect(databases).not.toContain('health-export-cleaner');
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.getByRole('radio', { name: /Day/ })).toBeChecked();
+  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await expect(page.getByRole('link', { name: 'Start for real' })).toBeVisible();
+});
+
+test('@claim:supported-sources opens CSV and Apple Health XML from the demo entry point', async ({ page }) => {
+  await page.goto('/demo');
+  await expect(page.locator('#source-format')).toHaveText('CSV');
+  await page.locator('#file-input').setInputFiles({
+    name: 'export.xml', mimeType: 'application/xml',
+    buffer: Buffer.from('<?xml version="1.0"?><HealthData><Record type="HKQuantityTypeIdentifierHeartRate" startDate="2026-08-28 10:00:00 +0000" endDate="2026-08-28 10:01:00 +0000" value="72" unit="count/min"/></HealthData>')
+  });
+  await expect(page.locator('#source-format')).toHaveText('XML');
+  await expect(page.locator('#source-count')).toHaveText('1');
+});
+
+test('@claim:clean-package cleans a sample end to end and exposes both archive entries before download', async ({ page }) => {
+  await page.goto('/demo');
   await expect(page.locator('h1')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Try a safe sample' }).click();
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
   await expect(page.getByText('Source ready')).toBeVisible();
   await expect(page.getByText('3 fields removed')).toBeVisible();
   await expect(page.getByText('3 rows kept')).toBeVisible();
@@ -49,10 +75,13 @@ test('cleans a sample end to end and exposes removals before download', async ({
   await page.getByRole('button', { name: /Download clean package/ }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/cleaned-package\.zip$/);
+  const entries = readStoredZip(await downloadBytes(download));
+  expect(entries.get('sample-health-export-cleaned.csv')).toContain('HeartRate');
+  expect(entries.get('sample-health-export-cleaned-provenance.txt')).toContain('HEALTH EXPORT CLEANER — PROVENANCE NOTE');
 });
 
-test('locks verifier identifiers out and excludes their values from the downloaded CSV', async ({ page }) => {
-  await page.goto('/');
+test('@claim:identifier-removal locks verifier identifiers out and excludes their values from the downloaded CSV', async ({ page }) => {
+  await page.goto('/demo');
   await page.locator('#file-input').setInputFiles({
     name: 'verifier.csv',
     mimeType: 'text/csv',
@@ -137,7 +166,7 @@ test('fails closed for missing dates and recognizes recorded_at when exporting a
 
 test('keeps field labels, precision, receipt, and empty-state recovery in sync', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Try a safe sample' }).click();
+  await page.getByRole('button', { name: 'Try it with sample data' }).click();
   const notes = page.locator('.field-list label').filter({ hasText: 'notes' });
   await notes.locator('input').uncheck();
   await expect(notes.getByText('Removed by you')).toBeVisible();
@@ -162,7 +191,7 @@ test('has no serious accessibility violations in the empty and configured states
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
   results = await new AxeBuilder({ page }).withRules(['label-content-name-mismatch']).analyze();
   expect(results.violations).toEqual([]);
-  await page.getByRole('button', { name: 'Try a safe sample' }).click();
+  await page.getByRole('button', { name: 'Try it with sample data' }).click();
   await expect(page.getByText('Source ready')).toBeVisible();
   results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
@@ -182,9 +211,11 @@ test('supports a keyboard-only path through cleaning and download', async ({ pag
   await page.keyboard.press('Enter');
   await expect(page.locator('#main')).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Try it with sample data' })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(page.locator('#file-input')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Try a safe sample' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Try it with sample data' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByText('Source ready')).toBeVisible();
 
@@ -200,8 +231,8 @@ test('supports a keyboard-only path through cleaning and download', async ({ pag
   await expect(downloadPromise).resolves.toBeTruthy();
 });
 
-test('does not send or persist uploaded health data', async ({ page }) => {
-  await page.goto('/');
+test('@claim:local-processing does not send or persist uploaded health data', async ({ page }) => {
+  await page.goto('/demo');
   await page.evaluate(() => navigator.serviceWorker.ready);
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
@@ -220,18 +251,18 @@ test('does not send or persist uploaded health data', async ({ page }) => {
   });
   expect(storageText).not.toMatch(/SECRET-HEALTH|SECRET-ID|private-secret/);
   await page.reload();
-  await expect(page.locator('#configure-panel')).toBeHidden();
+  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await expect(page.locator('#configure-panel')).not.toContainText('SECRET-HEALTH');
 });
 
-test('remains usable offline after installation', async ({ page, context }) => {
-  await page.goto('/');
+test('@claim:offline-reload remains usable offline after installation', async ({ page, context }) => {
+  await page.goto('/demo');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Try a safe sample' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try it with sample data' })).toBeVisible();
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText('Offline · cleaner ready')).toBeAttached();
-  await page.getByRole('button', { name: 'Try a safe sample' }).click();
   await expect(page.getByText('3 rows kept')).toBeVisible();
 });
 
@@ -243,14 +274,14 @@ test('announces and activates an available service-worker update', async ({ page
   await expect(page.locator('#update-toast')).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Refresh now' }).click();
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.getByRole('button', { name: 'Try a safe sample' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try it with sample data' })).toBeVisible();
 });
 
 test('is usable at a 390px mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: 'Try a safe sample' }).click();
+  await page.getByRole('button', { name: 'Try it with sample data' }).click();
   await expect(page.getByRole('button', { name: /Download clean package/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const targets = page.locator('.wordmark, footer nav a');
@@ -260,4 +291,14 @@ test('is usable at a 390px mobile viewport', async ({ page }) => {
     expect(box?.width).toBeGreaterThanOrEqual(44);
   }
   await expect(page.getByRole('link', { name: 'H// Health Export Cleaner home' })).toBeVisible();
+});
+
+test('declares a styled 404 response instead of rewriting unknown URLs to the app', async ({ page }) => {
+  const config = JSON.parse(await readFile('public/staticwebapp.config.json', 'utf8')) as { navigationFallback?: unknown; routes?: Array<{ route?: string; rewrite?: string }>; responseOverrides?: Record<string, { rewrite?: string; statusCode?: number }> };
+  expect(config.navigationFallback).toBeUndefined();
+  expect(config.routes).toContainEqual({ route: '/demo', rewrite: '/index.html' });
+  expect(config.responseOverrides?.['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });
+  await page.goto('/404.html');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('This page is not on the bench');
+  await expect(page.getByRole('link', { name: 'Go to Health Export Cleaner' })).toHaveAttribute('href', '/');
 });

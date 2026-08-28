@@ -1,0 +1,44 @@
+[
+  {
+    "id": "sample-demo",
+    "claim": "Try a sample health export without saving it to real cleaner preferences.",
+    "where": "landing action and demo banner",
+    "test": "npm run test:e2e -- --grep @claim:sample-demo",
+    "sandbox": "fresh browser context opens /demo; assert the sample is ready, the banner is present, and the only preference database uses the demo: namespace"
+  },
+  {
+    "id": "supported-sources",
+    "claim": "Opens CSV and Apple Health XML health exports.",
+    "where": "landing facts and intake panel",
+    "test": "npm run test:e2e -- --grep @claim:supported-sources",
+    "sandbox": "fresh /demo context opens the shipped CSV sample and a minimal Apple Health Record XML file"
+  },
+  {
+    "id": "local-processing",
+    "claim": "Health records stay on this device and are not uploaded or retained.",
+    "where": "landing facts, cleaner, privacy notice, README",
+    "test": "npm run test:e2e -- --grep @claim:local-processing",
+    "sandbox": "fresh /demo context uploads unique health values while every request is recorded; reload and inspect browser storage"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "Works offline after the first visit.",
+    "where": "landing facts and README",
+    "test": "npm run test:e2e -- --grep @claim:offline-reload",
+    "sandbox": "fresh context visits /demo, waits for the service worker, switches offline, reloads, and inspects the sample"
+  },
+  {
+    "id": "identifier-removal",
+    "claim": "Blocks common direct identifiers and location fields before export.",
+    "where": "landing lede and field-selection help",
+    "test": "npm run test:e2e -- --grep @claim:identifier-removal",
+    "sandbox": "fresh /demo context uploads a CSV containing direct identifiers and location; inspect the downloaded ZIP CSV"
+  },
+  {
+    "id": "clean-package",
+    "claim": "Downloads a cleaned CSV and provenance note in one ZIP.",
+    "where": "download panel and README",
+    "test": "npm run test:e2e -- --grep @claim:clean-package",
+    "sandbox": "fresh /demo context downloads the sample output and inspects both archive entries"
+  }
+]

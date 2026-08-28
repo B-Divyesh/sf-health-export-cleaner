@@ -1,8 +1,8 @@
 # Health Export Cleaner
 
-Health Export Cleaner is a free, browser-only utility for wearable users who
-need to share a bounded slice of their own health data. It opens supported CSV
-or Apple Health XML exports, then lets the user:
+Health Export Cleaner helps wearable users clean a smaller health export before
+sharing it. It opens supported CSV or Apple Health XML exports, then lets the
+user:
 
 - choose a date range and record types;
 - choose which non-sensitive fields to keep;
@@ -11,9 +11,17 @@ or Apple Health XML exports, then lets the user:
 - preview the result and the exact number of removed rows and fields; and
 - download one ZIP containing a cleaned CSV and a provenance/risk note.
 
-The source file is never uploaded or persisted. Only the timestamp-precision
-preference is saved in IndexedDB. The app can be installed and used offline
+Health records stay in page memory and are not uploaded or retained. Only the
+timestamp-precision preference is saved in IndexedDB. The app works offline
 after its first visit.
+
+## Try the sample safely
+
+Open `/demo` (or `/?demo=1`) to load sample wearable records immediately. Demo
+preferences use a separate `demo:health-export-cleaner` IndexedDB database;
+they never touch the normal cleaner preferences. The demo banner can reset the
+sample or discard its preference before starting for real. See
+[.factory/demo.md](.factory/demo.md) for the sample and reset details.
 
 ## Supported sources and limits
 
@@ -60,7 +68,9 @@ To run the same browser matrix against the deployed app, set
 `npm run test:e2e`.
 
 `dist/index.html` is the static deployment entry. `/privacy/` and `/terms/`
-are emitted as standalone pages.
+are emitted as standalone pages. `/demo` is the isolated sample route and an
+unknown address receives the styled `404.html` response with HTTP 404 on Static
+Web Apps.
 
 ## Privacy and security model
 

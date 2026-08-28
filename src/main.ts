@@ -2,7 +2,7 @@ import './styles.css';
 import { createZip } from './archive';
 import { binTimestamp, cleanDataset, getDateBounds, isSensitiveField, isTimestampField, provenanceText, toCsv } from './cleaner';
 import { formatBytes, parseHealthFile } from './parser';
-import { loadPreferences, savePreferences } from './storage';
+import { clearDemoPreferences, loadPreferences, savePreferences, useDemoStorage } from './storage';
 import type { CleanerSettings, CleanResult, Dataset, TimePrecision } from './types';
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -16,6 +16,8 @@ const progress = byId<HTMLElement>('parse-progress');
 const startDate = byId<HTMLInputElement>('start-date');
 const endDate = byId<HTMLInputElement>('end-date');
 const dateError = byId<HTMLElement>('date-error');
+const isDemo = window.location.pathname === '/demo' || new URLSearchParams(window.location.search).get('demo') === '1';
+useDemoStorage(isDemo);
 
 let dataset: Dataset | null = null;
 let result: CleanResult | null = null;
@@ -191,10 +193,11 @@ fileInput.addEventListener('change', () => { const file = fileInput.files?.[0]; 
 ['dragleave', 'drop'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
 dropZone.addEventListener('drop', (event) => { const file = event.dataTransfer?.files[0]; if (file) void inspectFile(file); });
 
-byId('sample-button').addEventListener('click', () => {
+function loadSample(): void {
   const sample = 'type,startDate,endDate,value,unit,sourceName,device,latitude,notes\nHeartRate,2026-08-20 08:12:41 +0000,2026-08-20 08:12:41 +0000,72,count/min,Watch,Model X,51.5072,morning reading\nStepCount,2026-08-21 14:45:09 +0000,2026-08-21 15:00:00 +0000,1240,count,Phone,Phone X,51.5080,lunch walk\nHeartRate,2026-08-25 21:03:12 +0000,2026-08-25 21:03:12 +0000,66,count/min,Watch,Model X,51.5090,resting';
   void inspectFile(new File([sample], 'sample-health-export.csv', { type: 'text/csv' }));
-});
+}
+byId('sample-button').addEventListener('click', loadSample);
 
 form.addEventListener('input', updatePreview);
 byId('types-all').addEventListener('click', () => { form.querySelectorAll<HTMLInputElement>('input[name="recordType"]').forEach((input) => { input.checked = true; }); updatePreview(); });
@@ -241,6 +244,24 @@ void loadPreferences().then((preferences) => {
   if (!preferences) return;
   const radio = form.querySelector<HTMLInputElement>(`input[name="precision"][value="${preferences.timePrecision}"]`); if (radio) radio.checked = true;
 });
+
+if (isDemo) {
+  document.title = 'Demo — Health Export Cleaner';
+  const banner = byId<HTMLElement>('demo-banner');
+  banner.hidden = false;
+  byId('reset-demo').addEventListener('click', async () => {
+    await clearDemoPreferences();
+    useDemoStorage(true);
+    form.querySelector<HTMLInputElement>('input[name="precision"][value="day"]')!.checked = true;
+    loadSample();
+  });
+  byId<HTMLAnchorElement>('start-real').addEventListener('click', async (event) => {
+    event.preventDefault();
+    await clearDemoPreferences();
+    window.location.assign('/');
+  });
+  loadSample();
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {

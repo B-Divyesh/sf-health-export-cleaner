@@ -1,6 +1,10 @@
 {
   "routes": [
     {
+      "route": "/demo",
+      "rewrite": "/index.html"
+    },
+    {
       "route": "/assets/*",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
@@ -19,12 +23,11 @@
       }
     }
   ],
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": [
-      "/assets/*",
-      "/*.{css,js,png,jpg,svg,webp,avif,ico,woff2,json,webmanifest,txt,xml,wasm}"
-    ]
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/404.html",
+      "statusCode": 404
+    }
   },
   "mimeTypes": {
     ".avif": "image/avif",

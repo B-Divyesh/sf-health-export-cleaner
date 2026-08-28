@@ -25,13 +25,14 @@
     <main id="main" tabindex="-1">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-copy">
-          <p class="eyebrow">A privacy workbench for your health export</p>
-          <h1 id="page-title">Keep the slice.<br /><span>Leave the trail.</span></h1>
-          <p class="lede">Choose the dates, record types, and fields you meant to share. Precise location and common identifiers are blocked before anything leaves your device.</p>
+          <p class="eyebrow">A private cleaner for health exports</p>
+          <h1 id="page-title">Clean a health export<br /><span>before you share it.</span></h1>
+          <p class="lede">For wearable users who need a smaller health file to share without common identifiers or location details.</p>
+          <div class="hero-action"><a class="primary-button" href="/demo">Try it with sample data</a><span>See a cleaned sample export immediately.</span></div>
           <ul class="promise-list" aria-label="Privacy promises">
             <li><span aria-hidden="true">01</span> Opens CSV and Apple Health XML</li>
-            <li><span aria-hidden="true">02</span> Never uploads or retains health records</li>
-            <li><span aria-hidden="true">03</span> Documents every removal</li>
+            <li><span aria-hidden="true">02</span> Health records stay in this browser tab</li>
+            <li><span aria-hidden="true">03</span> Works offline after the first visit</li>
           </ul>
         </div>
         <figure class="hero-figure">
@@ -67,7 +68,7 @@
               <input id="file-input" type="file" accept=".csv,.xml,text/csv,application/xml,text/xml" />
             </label>
             <div class="sample-row">
-              <button id="sample-button" class="text-button" type="button">Try a safe sample</button>
+              <button id="sample-button" class="text-button" type="button">Try it with sample data</button>
               <span>No account or installation required.</span>
             </div>
             <div id="parse-progress" class="progress-state" role="status" aria-live="polite" hidden>
@@ -152,12 +153,19 @@
       </section>
     </main>
 
+    <aside id="demo-banner" class="demo-banner" aria-label="Demo mode" hidden>
+      <strong>Demo — sample data, nothing is saved</strong>
+      <span>Change the sample freely. It stays separate from your cleaner preferences.</span>
+      <button id="reset-demo" class="text-button" type="button">Reset demo</button>
+      <a id="start-real" href="/">Start for real</a>
+    </aside>
+
     <div id="update-toast" class="update-toast" role="status" hidden><span>A safer, newer version is ready.</span><button id="update-button" type="button">Refresh now</button></div>
 
     <footer>
       <div class="footer-mark">H//</div>
-      <p>Free, local, and inspectable. Generated hero artwork is original to this product.</p>
-      <nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-health-export-cleaner" rel="noreferrer">Source code</a></nav>
+      <p>Free, local, and inspectable. Built by Param Factory.</p>
+      <nav aria-label="Legal"><a href="/demo">Demo</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-health-export-cleaner" rel="noreferrer">Source code</a></nav>
     </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
