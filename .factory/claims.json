@@ -63,6 +63,13 @@
     "sandbox": "fresh /demo context sets a date range, removes a record type and field, selects hour precision, and inspects the downloaded CSV"
   },
   {
+    "id": "exact-timestamp",
+    "claim": "Exact precision preserves the source timestamp in the cleaned CSV.",
+    "where": "timestamp precision control",
+    "test": "npm run test:e2e -- --grep @claim:exact-timestamp",
+    "sandbox": "fresh /demo context selects Exact, downloads the shipped sample, and asserts the original 2026-08-20 08:12:41 +0000 timestamp is in the cleaned CSV"
+  },
+  {
     "id": "csv-conventions",
     "claim": "CSV detects recorded_at, excludes rows without usable dates under a boundary, and groups files without a type column as CSV record.",
     "where": "landing date help and README supported sources",

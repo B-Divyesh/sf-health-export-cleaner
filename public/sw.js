@@ -1,4 +1,4 @@
-const VERSION = 'health-cleaner-v7';
+const VERSION = 'health-cleaner-v8';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const SHELL = [

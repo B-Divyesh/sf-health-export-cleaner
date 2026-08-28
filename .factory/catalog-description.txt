@@ -1,1 +1,1 @@
-Clean health exports locally by removing identifiers, locations, unwanted records, and precise times.
+Clean health exports locally before sharing by removing identifiers, locations, unwanted records, and precise times.

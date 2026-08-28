@@ -325,6 +325,16 @@ test('@claim:minimization-controls applies dates, types, fields, and timestamp p
   await expect(page.getByRole('button', { name: /Download cleaned copy/ })).toBeDisabled();
 });
 
+test('@claim:exact-timestamp preserves the shipped source timestamp in a fresh demo download', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('radio', { name: /Exact/ }).check();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
+  const entries = readStoredZip(await downloadBytes(await downloadPromise));
+  const csv = entries.get('health-export-cleaned.csv') ?? '';
+  expect(csv).toContain('2026-08-20 08:12:41 +0000');
+});
+
 test('@claim:apple-record-scope imports Record entries and omits unsupported Apple Health sections', async ({ page }) => {
   await page.goto('/demo');
   await page.locator('#file-input').setInputFiles({
@@ -503,7 +513,7 @@ test('declares route metadata, social preview, image provenance disclosure, and 
     await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /health-export-cleaner-social\.jpg$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.locator('footer')).toContainText('v1.0.3');
+    await expect(page.locator('footer')).toContainText('v1.0.4');
     await expect(page.locator('footer')).toContainText('Built by Param Factory');
   }
   await page.goto('/');
