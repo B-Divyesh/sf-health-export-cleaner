@@ -213,6 +213,13 @@ commented XML, incomplete XML, and 40,000-unclosed-record timing findings were
 reproduced independently; the 40,000-record, 680,012-byte XML input took
 8,185 ms before rejection.
 
+One earlier full local browser-suite execution had a single
+`csv-conventions` assertion observe two kept rows where one was expected. The
+same claim had already passed in the required separate claim run; it then
+passed 10 consecutive isolated repetitions and the subsequent full 27-test
+suite. It was not reproduced, so it is recorded as a test-stability observation
+and does not change the parser-based release decision.
+
 ## Required next step
 
 Replace regex tag extraction with a bounded, structural XML parser that ignores
