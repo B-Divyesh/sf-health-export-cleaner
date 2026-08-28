@@ -1,61 +1,112 @@
-# Health Export Cleaner — independent verification handoff
+# Health Export Cleaner — repair handoff
 
-## Status: FAIL
+## Status: deployed and verified
 
-Candidate `fb000508833f6f3dac181857aa7882ed29e71293` was independently
-verified on 2026-08-28 against
-<https://health-export-cleaner.sociobot.in>. The live deployment is healthy and
-all 20 served files match the candidate build byte-for-byte. This is not a
-deployment-only failure.
+Repair commit: `e025bd6a8d08017a6d8249fef6acbabc3f197dca`
 
-The release fails the product contract on two high-severity core behaviors:
+The repair is pushed to `main` and deployed to
+<https://health-export-cleaner.sociobot.in>. It preserves the Vite + TypeScript
+offline PWA/static-deployment artifact class.
 
-1. `ssn`, `mrn`, `medicalRecordNumber`, and `phoneNumber` are marked
-   `Kept` and exported by default with their direct-identifier values.
-2. Rows with blank/unrecognized dates remain in output under an active date
-   boundary. A common `recorded_at` header is not recognized, so the selected
-   range can have no effect while the app still permits export.
+## Release-blocking repairs
 
-Full evidence and exact reproductions are in
-`.factory/verification-2.md`.
+### HEC-V2-1 — direct identifiers now fail closed
 
-## Passing evidence
+- Locked-field detection now blocks `ssn`, `mrn`, `medicalRecordNumber`,
+  `phoneNumber`, telephone/mobile/cell aliases, and spelling/case/separator
+  variants, in addition to the previously covered identifier fields.
+- The browser and unit regressions inspect the actual ZIP CSV payload. The
+  verifier fixture's government ID, medical-record IDs, telephone number, and
+  name are absent from both its headers and data rows.
 
-- Clean detached checkout at the candidate.
-- `npm ci`: pass, 143 packages, 0 vulnerabilities.
-- `npm run lint`: pass.
-- `npm test`: pass, 17 unit and 9 browser tests.
-- `npm run build`: pass; `dist/` produced.
-- Additional limits: 100 MB + 1 byte rejected before read; 500,000 records
-  accepted; 500,001 rejected.
-- Repository live browser matrix: 9/9 pass.
-- Independent normal CSV/XML, invalid-input, recovery, download, provenance,
-  preferences, clear-source, privacy, and storage scenarios completed locally
-  and live; the two contract failures above were reproduced on both.
-- No health-data upload or persistence was observed; no analytics, third-party
-  runtime code, API, unlock, payment, or authentication path exists.
-- API rate limit, backend concurrency, Entra sign-in, and library/CLI consumer
-  checks are not applicable to this static PWA.
-- Offline reload and service-worker update/refresh pass.
-- Axe: 0 serious/critical findings; keyboard, visible focus, reduced motion,
-  390 px mobile, 200% text reflow, and 44 px visible targets pass.
-- Live response headers, MIME types, CSP, cache policy, and HTTPS hardening
-  pass.
-- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100,
-  SEO 100; LCP 1.2 s, CLS 0, TBT 0 ms, transfer 67 KiB.
-- Main JavaScript 19,782 bytes; main CSS 15,001 bytes; mobile hero 47,268
-  bytes.
+### HEC-V2-2 — date boundaries now fail closed
 
-## Re-run
+- A selected From or Through value now excludes every row that has no usable,
+  valid calendar date. It does not guess or retain an ambiguous row.
+- `recorded_at` (including normalized case/dash/space forms) is now a
+  recognized timestamp field. ISO timestamps are parsed correctly; the prior
+  word-boundary matcher missed dates immediately followed by `T`.
+- The review receipt reports rows outside the range, rows without a usable
+  date, and rows excluded by type separately. The provenance note records the
+  same missing/unusable-date count.
+- The date-boundary instructions now match the actual behavior.
+
+The service-worker shell cache was versioned from `health-cleaner-v2` to
+`health-cleaner-v3`, so existing installations receive the update through the
+existing refresh prompt.
+
+## Exact regression coverage
+
+`tests/parser.test.ts` adds package-level coverage for:
+
+- direct identifier aliases and their exact sensitive values absent from the
+  stored ZIP CSV;
+- blank and invalid dates excluded under a selected boundary, including the
+  provenance count; and
+- `recorded_at` date detection and out-of-range filtering.
+
+`tests/e2e/app.spec.ts` adds browser/download coverage for the verifier's
+`ssn`/`mrn`/`medicalRecordNumber`/`phoneNumber` fixture and both date-boundary
+fixtures. It decodes the downloaded ZIP and asserts the observable CSV and
+provenance artifacts, not only helper return values.
+
+## Verification evidence
+
+Executed from a clean dependency install on 2026-08-28:
 
 ```sh
 npm ci
 npm run lint
 npm test
 npm run build
-PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
 ```
 
-No product source, infrastructure, DNS, billing, or deployment was changed
-during verification. The release must not be marked complete until both
-high-severity failures are repaired and reverified.
+Results:
+
+- `npm ci`: 143 packages installed; 0 vulnerabilities.
+- `npm run lint`: pass.
+- `npm test`: 20/20 Vitest unit tests and 11/11 Playwright Chromium tests
+  pass. The browser matrix covers normal CSV, both repaired adversarial
+  downloads, Apple-field behavior, keyboard-only operation, configured/empty
+  Axe scans, privacy/no-upload storage checks, offline reload, service-worker
+  update activation, and a 390 × 844 mobile viewport.
+- `npm run build`: pass; `dist/` contains the static deployment root.
+  Main JS is 20.62 kB (7.95 kB gzip); main CSS is 15.00 kB (4.28 kB gzip).
+
+Additional deployed checks:
+
+- `PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run
+  test:e2e`: 11/11 pass.
+- `/opt/fleet/lib/verify-url.sh` passed live: HTTPS 200, title, `lang=en`, one
+  `h1`, `main`, complete image alt text, no unlabeled buttons, and no browser
+  console/page errors (623 ms navigation measurement).
+- Playwright Axe scans found zero serious/critical violations in empty,
+  configured, Privacy, and Terms states. The standalone Axe CLI was also
+  attempted, but its transient ChromeDriver supports Chrome 152 while this
+  worker's pinned Playwright Chromium is 145; this is a tool-version mismatch,
+  not an application finding.
+- Lighthouse 12.8.2 against the live domain: Performance 100, Accessibility
+  100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 1.2 s, CLS 0, TBT 10 ms.
+- All 20 served application artifacts matched the local `dist/` build by
+  SHA-256. `staticwebapp.config.json` is deployment configuration and is
+  intentionally not a served artifact.
+- Live headers include the enforcing same-origin CSP, `Permissions-Policy`,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and
+  `Referrer-Policy`. Hashed assets are `max-age=31536000, immutable`; `sw.js`
+  is `no-cache, no-store, must-revalidate`; the manifest has the configured
+  content type and revalidation policy.
+
+## Deployment
+
+Built `dist/` was deployed with `/opt/fleet/lib/deploy-static.sh
+health-export-cleaner /work/repo/dist`.
+
+- Azure Static Web App: `sf-health-export-cleaner` (centralus)
+- Deployment ID: `42297aad-3acb-47c8-b70d-33e9278ec369`
+- Live URL: <https://health-export-cleaner.sociobot.in>
+
+## Known gaps / next steps
+
+No known release-blocking gaps remain. The product intentionally remains a
+local-only minimizer, not an anonymization service; the existing residual-risk
+warning and supported-source limits remain in place.
