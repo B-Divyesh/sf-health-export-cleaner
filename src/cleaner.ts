@@ -72,7 +72,7 @@ export function binTimestamp(value: string, precision: TimePrecision): string {
 
 export function toCsv(headers: string[], rows: Record<string, string>[]): string {
   const encode = (value: string) => /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-  return [headers.map(encode).join(','), ...rows.map((row) => headers.map((header) => encode(row[header] ?? '')).join(','))].join('\r\n');
+  return `${[headers.map(encode).join(','), ...rows.map((row) => headers.map((header) => encode(row[header] ?? '')).join(','))].join('\r\n')}\r\n`;
 }
 
 export function provenanceText(dataset: Dataset, settings: CleanerSettings, result: CleanResult): string {

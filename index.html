@@ -37,6 +37,7 @@
         <figure class="hero-figure">
           <picture>
             <source media="(max-width: 760px)" srcset="/assets/sorting-bench-768.webp" type="image/webp" />
+            <source srcset="/assets/sorting-bench-1280.avif" type="image/avif" />
             <source srcset="/assets/sorting-bench-1280.webp" type="image/webp" />
             <img src="/assets/sorting-bench-1280.jpg" width="1280" height="853" alt="Paper health records pass through a concrete sorting machine; location markers are trapped while a small neat stack exits." fetchpriority="high" decoding="async" />
           </picture>
@@ -69,7 +70,7 @@
               <button id="sample-button" class="text-button" type="button">Try a safe sample</button>
               <span>No account or installation required.</span>
             </div>
-            <div id="parse-progress" class="progress-state" hidden>
+            <div id="parse-progress" class="progress-state" role="status" aria-live="polite" hidden>
               <span class="spinner" aria-hidden="true"></span>
               <div><strong>Inspecting locally…</strong><span id="progress-detail">Reading structure and fields</span></div>
             </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseCsvRows, parseHealthCsv, parseHealthXml } from '../src/parser';
 import { binTimestamp, cleanDataset, isSensitiveField, provenanceText, toCsv } from '../src/cleaner';
+import { createZip } from '../src/archive';
 import type { CleanerSettings, Dataset } from '../src/types';
 
 describe('CSV parsing', () => {
@@ -20,6 +21,17 @@ describe('CSV parsing', () => {
     const parsed = parseHealthCsv('date,value\n2026-08-28,120');
     expect(parsed.records[0].type).toBe('CSV record');
     expect(parsed.warnings[0]).toMatch(/No record-type column/);
+  });
+});
+
+describe('download package', () => {
+  it('creates a ZIP containing both named artifacts', async () => {
+    const zip = createZip([{ name: 'cleaned.csv', content: 'value\r\n72' }, { name: 'provenance.txt', content: 'local only' }]);
+    const bytes = new Uint8Array(await zip.arrayBuffer());
+    const text = new TextDecoder().decode(bytes);
+    expect([...bytes.slice(0, 4)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
+    expect(text).toContain('cleaned.csv');
+    expect(text).toContain('provenance.txt');
   });
 });
 

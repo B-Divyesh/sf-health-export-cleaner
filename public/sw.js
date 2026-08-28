@@ -13,6 +13,7 @@ const SHELL = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-512.png',
   '/assets/sorting-bench-768.webp',
+  '/assets/sorting-bench-1280.avif',
   '/assets/sorting-bench-1280.webp',
   '/assets/sorting-bench-1280.jpg'
 ];

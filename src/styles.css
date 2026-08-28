@@ -71,6 +71,7 @@ code { padding: 1px 4px; background: #ddd9ce; font: .9em ui-monospace, monospace
 
 .drop-zone { position: relative; min-height: 230px; margin-top: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; border: 3px dashed var(--charcoal); background: var(--concrete); cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
 .drop-zone:hover, .drop-zone.is-dragging { background: var(--lichen); transform: translateY(-2px); }
+.drop-zone:has(input:focus-visible) { outline: 3px solid var(--moss); outline-offset: 4px; }
 .drop-zone.is-busy { pointer-events: none; opacity: .6; }
 .drop-zone svg { width: 52px; height: 52px; fill: none; stroke: var(--moss); stroke-width: 2.4; stroke-linejoin: bevel; }
 .drop-title { font-weight: 850; font-size: 1.15rem; }
