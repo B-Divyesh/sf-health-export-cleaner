@@ -2,15 +2,28 @@ import { normalizeKey } from './parser';
 import type { CleanerSettings, CleanResult, Dataset, TimePrecision } from './types';
 
 const DATE_KEYS = new Set(['date', 'datetime', 'timestamp', 'time', 'startdate', 'start_date', 'starttime', 'start_time', 'enddate', 'end_date', 'endtime', 'end_time', 'creationdate', 'creation_date']);
-const SENSITIVE_PATTERNS = [
-  /(^|_)(id|uuid|guid|identifier|userid|user_id|email|name|device|serial|imei|source|source_name|source_version|metadata)(_|$)/i,
-  /(^|_)(lat|latitude|lon|lng|longitude|altitude|elevation|gps|route|location|address|coordinate)(_|$)/i,
-  /(sourcename|sourceversion|devicename|deviceid|useridentifier|gps|route|location|latitude|longitude|coordinate)/i
+const SENSITIVE_TOKENS = new Set([
+  'id', 'uuid', 'guid', 'identifier', 'email', 'name', 'device', 'serial', 'imei', 'source', 'metadata',
+  'lat', 'latitude', 'lon', 'lng', 'longitude', 'altitude', 'elevation', 'gps', 'route', 'location', 'address',
+  'coordinate', 'coordinates'
+]);
+
+// Some exports remove every word boundary (for example `patientid`). Keep
+// this list deliberately conservative and tied to common identity/device/
+// location compounds; tokenized vendor measurement names remain available.
+const SENSITIVE_COMPACT_PATTERNS = [
+  /^(?:patient|participant|person|subject|user|member|account|record|study|sample)(?:id|identifier|uuid|guid|name|email|emailaddress|address)$/,
+  /^(?:emailaddress|mailaddress)$/,
+  /^(?:device(?:id|identifier|uuid|guid|name|serial|serialnumber|model|details)?|serialnumber|sourcename|sourceversion|sourceid)$/,
+  /^(?:gps(?:coordinate|coordinates|location|route)?|location(?:id|name|coordinate|coordinates)?|geocoordinates?|coordinates?|latitude|longitude|altitude|elevation|route|streetaddress|postaladdress)$/
 ];
 
 export function isSensitiveField(field: string): boolean {
   const normalized = normalizeKey(field);
-  return SENSITIVE_PATTERNS.some((pattern) => pattern.test(normalized));
+  const tokens = normalized.split('_');
+  if (tokens.some((token) => SENSITIVE_TOKENS.has(token))) return true;
+  const compact = tokens.join('');
+  return SENSITIVE_COMPACT_PATTERNS.some((pattern) => pattern.test(compact));
 }
 
 export function isTimestampField(field: string): boolean {

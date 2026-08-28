@@ -92,8 +92,24 @@ function renderFields(source: Dataset): void {
     const label = document.createElement('label'); label.className = blocked ? 'is-blocked' : '';
     const input = document.createElement('input'); input.type = 'checkbox'; input.name = 'field'; input.value = field; input.id = `field-${index}`; input.checked = !blocked; input.disabled = blocked;
     const name = document.createElement('span'); name.textContent = field;
-    const state = document.createElement('small'); state.textContent = blocked ? 'Always removed' : (isTimestampField(field) ? 'Kept · timestamp reduced below' : 'Kept');
+    const state = document.createElement('small'); state.className = 'field-state';
     label.append(input, name, state); container.append(label);
+  });
+}
+
+function updateFieldStates(settings: CleanerSettings): void {
+  form.querySelectorAll<HTMLInputElement>('input[name="field"]').forEach((input) => {
+    const label = input.closest('label');
+    const state = label?.querySelector<HTMLElement>('.field-state');
+    if (!label || !state) return;
+    const blocked = input.disabled;
+    label.classList.toggle('is-user-removed', !blocked && !input.checked);
+    if (blocked) state.textContent = 'Always removed';
+    else if (!input.checked) state.textContent = 'Removed by you';
+    else if (isTimestampField(input.value) && settings.timePrecision === 'day') state.textContent = 'Kept · reduced to day';
+    else if (isTimestampField(input.value) && settings.timePrecision === 'hour') state.textContent = 'Kept · reduced to hour';
+    else if (isTimestampField(input.value)) state.textContent = 'Kept · exact timestamp';
+    else state.textContent = 'Kept';
   });
 }
 
@@ -110,6 +126,7 @@ function getSettings(): CleanerSettings {
 function updatePreview(): void {
   if (!dataset) return;
   const settings = getSettings();
+  updateFieldStates(settings);
   const invalidDate = Boolean(settings.startDate && settings.endDate && settings.startDate > settings.endDate);
   dateError.hidden = !invalidDate;
   startDate.setAttribute('aria-invalid', String(invalidDate));
@@ -121,8 +138,20 @@ function updatePreview(): void {
   byId('removed-summary').textContent = `${leftOut.toLocaleString()} row${leftOut === 1 ? '' : 's'} left out`;
   byId('removed-detail').textContent = `${result.omittedByDate.toLocaleString()} by date · ${result.omittedByType.toLocaleString()} by type`;
   byId('fields-summary').textContent = `${result.removedFields.length.toLocaleString()} field${result.removedFields.length === 1 ? '' : 's'} removed`;
+  byId('removed-fields-detail').textContent = result.removedFields.length ? result.removedFields.join(', ') : 'None';
   renderPreviewTable(result);
-  byId('no-output').hidden = result.rows.length > 0 && result.headers.length > 0;
+  const noOutput = byId('no-output');
+  if (invalidDate) noOutput.hidden = true;
+  else if (!result.headers.length) {
+    noOutput.textContent = 'No fields are selected. Select at least one available field to create a cleaned copy.';
+    noOutput.hidden = false;
+  } else if (!settings.selectedTypes.length) {
+    noOutput.textContent = 'No record types are selected. Select at least one record type to include rows.';
+    noOutput.hidden = false;
+  } else if (!result.rows.length) {
+    noOutput.textContent = 'No records match this date boundary. Widen the dates to include rows.';
+    noOutput.hidden = false;
+  } else noOutput.hidden = true;
   const download = byId<HTMLButtonElement>('download-button');
   download.disabled = invalidDate || !result.rows.length || !result.headers.length;
   document.querySelector('[data-step="3"]')?.classList.toggle('is-active', Boolean(result.rows.length && result.headers.length));
@@ -176,7 +205,7 @@ byId('clear-button').addEventListener('click', () => {
   if (!dataset || !window.confirm(`Remove “${dataset.filename}” from this tab? Your original file will not be changed.`)) return;
   dataset = null; result = null; configurePanel.hidden = true; fileInput.value = ''; errorBox.hidden = true;
   document.querySelectorAll('.step-rail li').forEach((item, index) => item.classList.toggle('is-active', index === 0));
-  uploadPanel.scrollIntoView({ behavior: 'smooth' });
+  uploadPanel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 });
 
 byId('download-button').addEventListener('click', () => {

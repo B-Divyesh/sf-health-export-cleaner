@@ -4,6 +4,24 @@ import { binTimestamp, cleanDataset, isSensitiveField, provenanceText, toCsv } f
 import { createZip } from '../src/archive';
 import type { CleanerSettings, Dataset } from '../src/types';
 
+async function readStoredZip(blob: Blob): Promise<Map<string, string>> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const entries = new Map<string, string>();
+  let offset = 0;
+  while (offset + 30 <= bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+    expect(view.getUint16(offset + 8, true)).toBe(0);
+    const size = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const contentOffset = offset + 30 + nameLength + extraLength;
+    const name = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + nameLength));
+    entries.set(name, new TextDecoder().decode(bytes.slice(contentOffset, contentOffset + size)));
+    offset = contentOffset + size;
+  }
+  return entries;
+}
+
 describe('CSV parsing', () => {
   it('supports quoted commas, escaped quotes, and line breaks', () => {
     expect(parseCsvRows('type,note\r\nHeartRate,"resting, \"\"calm\"\""\r\nSteps,"two\nlines"')).toEqual([
@@ -67,8 +85,49 @@ describe('minimization', () => {
     expect(output.omittedByType).toBe(1);
   });
 
-  it('recognizes common compact sensitive names', () => {
-    expect(['sourceName', 'sourceVersion', 'device', 'GPSRoute', 'longitude', 'user_id'].every(isSensitiveField)).toBe(true);
+  it.each([
+    ['camelCase', ['patientId', 'patientName', 'emailAddress', 'deviceId', 'gpsCoordinates']],
+    ['PascalCase', ['PatientId', 'PatientName', 'EmailAddress', 'DeviceId', 'GpsCoordinates']],
+    ['spaced', ['patient id', 'patient name', 'email address', 'device id', 'gps coordinates']],
+    ['dashed', ['patient-id', 'patient-name', 'email-address', 'device-id', 'gps-coordinates']],
+    ['underscored', ['patient_id', 'patient_name', 'email_address', 'device_id', 'gps_coordinates']],
+    ['compact', ['patientid', 'patientname', 'emailaddress', 'deviceid', 'gpscoordinates']]
+  ])('recognizes %s identifier, name, email, device, and location variants', (_style, fields) => {
+    expect(fields.every(isSensitiveField)).toBe(true);
+  });
+
+  it('recognizes the verifier fixture fields and legacy sensitive aliases', () => {
+    expect([
+      'patientId', 'participantID', 'recordId', 'patientName', 'emailAddress', 'gpsCoordinates',
+      'sourceName', 'sourceVersion', 'device', 'GPSRoute', 'longitude', 'user_id'
+    ].every(isSensitiveField)).toBe(true);
+  });
+
+  it('removes direct identifiers from the actual ZIP CSV payload', async () => {
+    const sensitiveDataset: Dataset = {
+      kind: 'csv', filename: 'verifier.csv', size: 240, warnings: [],
+      headers: ['type', 'date', 'value', 'patientId', 'participantID', 'recordId', 'patientName', 'emailAddress', 'gpsCoordinates'],
+      records: [{
+        type: 'HeartRate',
+        fields: {
+          type: 'HeartRate', date: '2026-08-28', value: '72', patientId: 'P-123', participantID: 'S-456',
+          recordId: 'R-789', patientName: 'Jane Doe', emailAddress: 'jane@example.test', gpsCoordinates: '51.5,-0.1'
+        }
+      }]
+    };
+    const sensitiveSettings: CleanerSettings = {
+      startDate: '2026-08-28', endDate: '2026-08-28', selectedTypes: ['HeartRate'],
+      includedFields: sensitiveDataset.headers, timePrecision: 'day'
+    };
+    const cleaned = cleanDataset(sensitiveDataset, sensitiveSettings);
+    const entries = await readStoredZip(createZip([
+      { name: 'verifier-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
+      { name: 'verifier-cleaned-provenance.txt', content: provenanceText(sensitiveDataset, sensitiveSettings, cleaned) }
+    ]));
+    const csv = entries.get('verifier-cleaned.csv') ?? '';
+    expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
+    expect(csv).not.toMatch(/P-123|S-456|R-789|Jane Doe|jane@example\.test|51\.5,-0\.1/);
+    expect(entries.get('verifier-cleaned-provenance.txt')).toContain('patientId, participantID, recordId, patientName, emailAddress, gpsCoordinates');
   });
 
   it('bins timestamps without shifting calendar dates across time zones', () => {
