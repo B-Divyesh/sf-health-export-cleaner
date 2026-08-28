@@ -27,6 +27,7 @@ export interface CleanResult {
   rows: Record<string, string>[];
   headers: string[];
   omittedByDate: number;
+  omittedWithoutUsableDate: number;
   omittedByType: number;
   removedFields: string[];
 }

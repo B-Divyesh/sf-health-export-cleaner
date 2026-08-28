@@ -17,8 +17,10 @@ after its first visit.
 
 ## Supported sources and limits
 
-- CSV with a header row. Common `type`, date, and timestamp column names are
-  detected. A CSV without a type column is treated as one record type.
+- CSV with a header row. Common `type`, date, and timestamp column names
+  (including `recorded_at`) are detected. When a date boundary is set, rows
+  without a usable date are excluded rather than guessed. A CSV without a type
+  column is treated as one record type.
 - Apple Health `export.xml`. Version 1 intentionally reads `<Record>` elements
   only; workouts, routes, clinical records, ActivitySummary, and nested
   metadata are omitted.

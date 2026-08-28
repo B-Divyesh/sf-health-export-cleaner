@@ -131,12 +131,13 @@ function updatePreview(): void {
   dateError.hidden = !invalidDate;
   startDate.setAttribute('aria-invalid', String(invalidDate));
   endDate.setAttribute('aria-invalid', String(invalidDate));
-  result = invalidDate ? { rows: [], headers: [], omittedByDate: 0, omittedByType: 0, removedFields: [] } : cleanDataset(dataset, settings);
-  const leftOut = result.omittedByDate + result.omittedByType;
+  result = invalidDate ? { rows: [], headers: [], omittedByDate: 0, omittedWithoutUsableDate: 0, omittedByType: 0, removedFields: [] } : cleanDataset(dataset, settings);
+  const leftOut = result.omittedByDate + result.omittedWithoutUsableDate + result.omittedByType;
   byId('output-count').textContent = `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? '' : 's'}`;
   byId('kept-summary').textContent = `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? '' : 's'} kept`;
+  byId('kept-detail').textContent = settings.startDate || settings.endDate ? 'inside your boundary' : 'matching selected types';
   byId('removed-summary').textContent = `${leftOut.toLocaleString()} row${leftOut === 1 ? '' : 's'} left out`;
-  byId('removed-detail').textContent = `${result.omittedByDate.toLocaleString()} by date · ${result.omittedByType.toLocaleString()} by type`;
+  byId('removed-detail').textContent = `${result.omittedByDate.toLocaleString()} outside range · ${result.omittedWithoutUsableDate.toLocaleString()} without usable date · ${result.omittedByType.toLocaleString()} by type`;
   byId('fields-summary').textContent = `${result.removedFields.length.toLocaleString()} field${result.removedFields.length === 1 ? '' : 's'} removed`;
   byId('removed-fields-detail').textContent = result.removedFields.length ? result.removedFields.join(', ') : 'None';
   renderPreviewTable(result);

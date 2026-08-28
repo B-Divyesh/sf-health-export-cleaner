@@ -93,7 +93,7 @@
             <form id="cleaner-form">
               <fieldset class="control-group">
                 <legend><span>1</span> Set the date boundary</legend>
-                <p>Rows with a detected date outside this range will be left out. Undated rows stay in the copy.</p>
+                <p>When either date is set, only rows with a usable date inside this range stay in the copy. Rows without a usable date are left out.</p>
                 <div class="date-grid">
                   <label for="start-date">From<input id="start-date" name="startDate" type="date" /></label>
                   <label for="end-date">Through<input id="end-date" name="endDate" type="date" /></label>
@@ -127,7 +127,7 @@
             <section class="review-block" aria-labelledby="review-title">
               <div class="review-heading"><div><p class="panel-number">03 / OUTPUT CHECK</p><h3 id="review-title">Review what leaves</h3></div><span id="output-count" class="big-count">0 rows</span></div>
               <div class="receipt-grid">
-                <div class="receipt kept"><span aria-hidden="true">✓</span><div><strong id="kept-summary">0 rows kept</strong><small>inside your boundary</small></div></div>
+                <div class="receipt kept"><span aria-hidden="true">✓</span><div><strong id="kept-summary">0 rows kept</strong><small id="kept-detail">inside your boundary</small></div></div>
                 <div class="receipt removed"><span aria-hidden="true">×</span><div><strong id="removed-summary">0 rows left out</strong><small id="removed-detail">by date or type</small></div></div>
                 <div class="receipt removed"><span aria-hidden="true">×</span><div><strong id="fields-summary">0 fields removed</strong><small id="removed-fields-detail" class="removed-fields-list">None</small></div></div>
               </div>

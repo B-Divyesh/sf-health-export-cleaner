@@ -1,9 +1,16 @@
 import { normalizeKey } from './parser';
 import type { CleanerSettings, CleanResult, Dataset, TimePrecision } from './types';
 
-const DATE_KEYS = new Set(['date', 'datetime', 'timestamp', 'time', 'startdate', 'start_date', 'starttime', 'start_time', 'enddate', 'end_date', 'endtime', 'end_time', 'creationdate', 'creation_date']);
+const DATE_KEYS = new Set([
+  'date', 'datetime', 'timestamp', 'time',
+  'startdate', 'start_date', 'starttime', 'start_time',
+  'enddate', 'end_date', 'endtime', 'end_time',
+  'creationdate', 'creation_date', 'recorded_date', 'recorded_at',
+  'observed_at', 'measured_at', 'logged_at'
+]);
 const SENSITIVE_TOKENS = new Set([
   'id', 'uuid', 'guid', 'identifier', 'email', 'name', 'device', 'serial', 'imei', 'source', 'metadata',
+  'ssn', 'mrn', 'phone', 'telephone', 'mobile', 'cell',
   'lat', 'latitude', 'lon', 'lng', 'longitude', 'altitude', 'elevation', 'gps', 'route', 'location', 'address',
   'coordinate', 'coordinates'
 ]);
@@ -14,6 +21,7 @@ const SENSITIVE_TOKENS = new Set([
 const SENSITIVE_COMPACT_PATTERNS = [
   /^(?:patient|participant|person|subject|user|member|account|record|study|sample)(?:id|identifier|uuid|guid|name|email|emailaddress|address)$/,
   /^(?:emailaddress|mailaddress)$/,
+  /^(?:socialsecuritynumber|medicalrecordnumber|phonenumber|telephonenumber|mobilenumber|cellnumber|contactnumber)$/,
   /^(?:device(?:id|identifier|uuid|guid|name|serial|serialnumber|model|details)?|serialnumber|sourcename|sourceversion|sourceid)$/,
   /^(?:gps(?:coordinate|coordinates|location|route)?|location(?:id|name|coordinate|coordinates)?|geocoordinates?|coordinates?|latitude|longitude|altitude|elevation|route|streetaddress|postaladdress)$/
 ];
@@ -46,11 +54,16 @@ export function cleanDataset(dataset: Dataset, settings: CleanerSettings): Clean
   const removedFields = dataset.headers.filter((header) => !headers.includes(header));
   const rows: Record<string, string>[] = [];
   let omittedByDate = 0;
+  let omittedWithoutUsableDate = 0;
   let omittedByType = 0;
+  const hasDateBoundary = Boolean(settings.startDate || settings.endDate);
 
   for (const record of dataset.records) {
     if (!allowedTypes.has(record.type)) { omittedByType += 1; continue; }
     const date = recordDate(record.fields);
+    if (hasDateBoundary && !date) {
+      omittedWithoutUsableDate += 1; continue;
+    }
     if (date && ((settings.startDate && date < settings.startDate) || (settings.endDate && date > settings.endDate))) {
       omittedByDate += 1; continue;
     }
@@ -61,7 +74,7 @@ export function cleanDataset(dataset: Dataset, settings: CleanerSettings): Clean
     }
     rows.push(output);
   }
-  return { rows, headers, omittedByDate, omittedByType, removedFields };
+  return { rows, headers, omittedByDate, omittedWithoutUsableDate, omittedByType, removedFields };
 }
 
 export function recordDate(fields: Record<string, string>): string {
@@ -72,7 +85,18 @@ export function recordDate(fields: Record<string, string>): string {
 }
 
 export function extractCalendarDate(value: string): string {
-  return value.match(/\b(\d{4}-\d{2}-\d{2})\b/)?.[1] ?? '';
+  // ISO timestamps continue with `T`, a word character, so word boundaries
+  // would miss the most common timestamp form. Only adjacent digits make a
+  // calendar-date match invalid here.
+  const date = value.match(/(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)/);
+  if (!date) return '';
+  const year = Number(date[1]);
+  const month = Number(date[2]);
+  const day = Number(date[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+    ? `${date[1]}-${date[2]}-${date[3]}`
+    : '';
 }
 
 export function binTimestamp(value: string, precision: TimePrecision): string {
@@ -105,6 +129,7 @@ export function provenanceText(dataset: Dataset, settings: CleanerSettings, resu
     `Included fields: ${result.headers.join(', ') || 'none'}`,
     `Removed fields: ${result.removedFields.join(', ') || 'none'}`,
     `Rows outside date boundary: ${result.omittedByDate}`,
+    `Rows without usable date under active boundary: ${result.omittedWithoutUsableDate}`,
     `Rows with excluded type: ${result.omittedByType}`,
     '',
     'Privacy note',

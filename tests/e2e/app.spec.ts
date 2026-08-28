@@ -77,6 +77,64 @@ test('locks verifier identifiers out and excludes their values from the download
   expect(csv).not.toMatch(/P-123|S-456|R-789|Jane Doe|jane@example\.test|51\.5,-0\.1/);
 });
 
+test('locks ordinary government, medical-record, and phone identifiers out of the downloaded CSV', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#file-input').setInputFiles({
+    name: 'direct-identifiers.csv', mimeType: 'text/csv',
+    buffer: Buffer.from([
+      'type,date,value,ssn,mrn,medicalRecordNumber,phoneNumber,fullName',
+      'HeartRate,2026-08-28,72,111-22-3333,MRN-42,MED-7,+1-202-555-0100,Jane Doe'
+    ].join('\n'))
+  });
+  await expect(page.getByText('Source ready')).toBeVisible();
+  for (const field of ['ssn', 'mrn', 'medicalRecordNumber', 'phoneNumber', 'fullName']) {
+    const row = page.locator('.field-list label').filter({ hasText: field });
+    await expect(row.getByText('Always removed')).toBeVisible();
+    await expect(row.locator('input')).toBeDisabled();
+  }
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Download clean package/ }).click();
+  const entries = readStoredZip(await downloadBytes(await downloadPromise));
+  const csv = entries.get('direct-identifiers-cleaned.csv') ?? '';
+  expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
+  expect(csv).not.toMatch(/111-22-3333|MRN-42|MED-7|\+1-202-555-0100|Jane Doe/);
+});
+
+test('fails closed for missing dates and recognizes recorded_at when exporting a bounded CSV', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#file-input').setInputFiles({
+    name: 'bounded.csv', mimeType: 'text/csv',
+    buffer: Buffer.from([
+      'type,date,value,notes',
+      'HeartRate,2026-08-20,72,inside',
+      'HeartRate,,999,UNDATED-ROW',
+      'HeartRate,2026-08-22,65,outside'
+    ].join('\n'))
+  });
+  await expect(page.getByText('Source ready')).toBeVisible();
+  await page.locator('#start-date').fill('2026-08-20');
+  await page.locator('#end-date').fill('2026-08-20');
+  await expect(page.locator('#kept-summary')).toHaveText('1 row kept');
+  await expect(page.locator('#removed-detail')).toHaveText('1 outside range · 1 without usable date · 0 by type');
+  const boundedDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Download clean package/ }).click();
+  const boundedEntries = readStoredZip(await downloadBytes(await boundedDownload));
+  const boundedCsv = boundedEntries.get('bounded-cleaned.csv') ?? '';
+  expect(boundedCsv).toBe('type,date,value,notes\r\nHeartRate,2026-08-20,72,inside\r\n');
+  expect(boundedCsv).not.toMatch(/UNDATED-ROW|outside/);
+  expect(boundedEntries.get('bounded-cleaned-provenance.txt')).toContain('Rows without usable date under active boundary: 1');
+
+  await page.locator('#file-input').setInputFiles({
+    name: 'recorded-at.csv', mimeType: 'text/csv', buffer: Buffer.from('recorded_at,value\n2026-08-28T12:00:00Z,8')
+  });
+  await expect(page.locator('#source-span')).toHaveText('2026-08-28 — 2026-08-28');
+  await page.locator('#start-date').fill('2026-08-29');
+  await page.locator('#end-date').fill('2026-08-30');
+  await expect(page.locator('#kept-summary')).toHaveText('0 rows kept');
+  await expect(page.locator('#removed-detail')).toHaveText('1 outside range · 0 without usable date · 0 by type');
+  await expect(page.getByRole('button', { name: /Download clean package/ })).toBeDisabled();
+});
+
 test('keeps field labels, precision, receipt, and empty-state recovery in sync', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try a safe sample' }).click();

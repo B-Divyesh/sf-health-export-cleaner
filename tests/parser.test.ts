@@ -130,6 +130,73 @@ describe('minimization', () => {
     expect(entries.get('verifier-cleaned-provenance.txt')).toContain('patientId, participantID, recordId, patientName, emailAddress, gpsCoordinates');
   });
 
+  it('locks common government, medical-record, and telephone identifier aliases out of the actual ZIP CSV payload', async () => {
+    const directIdentifierDataset: Dataset = {
+      kind: 'csv', filename: 'direct-identifiers.csv', size: 220, warnings: [],
+      headers: ['type', 'date', 'value', 'ssn', 'MRN', 'medicalRecordNumber', 'phone-number'],
+      records: [{
+        type: 'HeartRate',
+        fields: {
+          type: 'HeartRate', date: '2026-08-28', value: '72', ssn: '111-22-3333', MRN: 'MRN-42',
+          medicalRecordNumber: 'MED-7', 'phone-number': '+1-202-555-0100'
+        }
+      }]
+    };
+    const directIdentifierSettings: CleanerSettings = {
+      startDate: '2026-08-28', endDate: '2026-08-28', selectedTypes: ['HeartRate'],
+      includedFields: directIdentifierDataset.headers, timePrecision: 'day'
+    };
+    expect(['ssn', 'MRN', 'medicalRecordNumber', 'phone-number'].every(isSensitiveField)).toBe(true);
+    const cleaned = cleanDataset(directIdentifierDataset, directIdentifierSettings);
+    const entries = await readStoredZip(createZip([
+      { name: 'direct-identifiers-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
+      { name: 'direct-identifiers-provenance.txt', content: provenanceText(directIdentifierDataset, directIdentifierSettings, cleaned) }
+    ]));
+    const csv = entries.get('direct-identifiers-cleaned.csv') ?? '';
+    expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
+    expect(csv).not.toMatch(/111-22-3333|MRN-42|MED-7|\+1-202-555-0100/);
+  });
+
+  it('fails closed for missing or invalid dates when a date boundary is active and records that exclusion in the package', async () => {
+    const boundedDataset: Dataset = {
+      kind: 'csv', filename: 'bounded.csv', size: 180, warnings: [],
+      headers: ['type', 'date', 'value', 'notes'],
+      records: [
+        { type: 'HeartRate', fields: { type: 'HeartRate', date: '2026-08-20', value: '72', notes: 'inside' } },
+        { type: 'HeartRate', fields: { type: 'HeartRate', date: '', value: '999', notes: 'UNDATED-ROW' } },
+        { type: 'HeartRate', fields: { type: 'HeartRate', date: '2026-02-30', value: '888', notes: 'INVALID-DATE-ROW' } },
+        { type: 'HeartRate', fields: { type: 'HeartRate', date: '2026-08-22', value: '65', notes: 'outside' } }
+      ]
+    };
+    const boundedSettings: CleanerSettings = {
+      startDate: '2026-08-20', endDate: '2026-08-20', selectedTypes: ['HeartRate'], includedFields: boundedDataset.headers, timePrecision: 'day'
+    };
+    const cleaned = cleanDataset(boundedDataset, boundedSettings);
+    expect(cleaned.rows).toEqual([{ type: 'HeartRate', date: '2026-08-20', value: '72', notes: 'inside' }]);
+    expect(cleaned.omittedByDate).toBe(1);
+    expect(cleaned.omittedWithoutUsableDate).toBe(2);
+    const entries = await readStoredZip(createZip([
+      { name: 'bounded-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
+      { name: 'bounded-provenance.txt', content: provenanceText(boundedDataset, boundedSettings, cleaned) }
+    ]));
+    const csv = entries.get('bounded-cleaned.csv') ?? '';
+    expect(csv).toBe('type,date,value,notes\r\nHeartRate,2026-08-20,72,inside\r\n');
+    expect(csv).not.toMatch(/UNDATED-ROW|INVALID-DATE-ROW|outside/);
+    expect(entries.get('bounded-provenance.txt')).toContain('Rows without usable date under active boundary: 2');
+  });
+
+  it('recognizes recorded_at as a timestamp field for bounds and filtering', () => {
+    const recordedDataset: Dataset = {
+      kind: 'csv', filename: 'recorded.csv', size: 80, warnings: [], headers: ['recorded_at', 'value'],
+      records: [{ type: 'CSV record', fields: { recorded_at: '2026-08-28T12:00:00Z', value: '8' } }]
+    };
+    const cleaned = cleanDataset(recordedDataset, {
+      startDate: '2026-08-29', endDate: '2026-08-30', selectedTypes: ['CSV record'], includedFields: recordedDataset.headers, timePrecision: 'day'
+    });
+    expect(cleaned.rows).toEqual([]);
+    expect(cleaned.omittedByDate).toBe(1);
+  });
+
   it('bins timestamps without shifting calendar dates across time zones', () => {
     expect(binTimestamp('2026-01-01 00:15:00 +1300', 'day')).toBe('2026-01-01');
     expect(binTimestamp('2026-01-01T22:15:00-1000', 'hour')).toBe('2026-01-01 22:00');
