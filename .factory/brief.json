@@ -1,0 +1,20 @@
+{
+  "slug": "health-export-cleaner",
+  "title": "Health Export Cleaner",
+  "artifact_class": "pwa-offline",
+  "user": "Wearable users who need a bounded, minimized slice of their own health export.",
+  "job": "Locally inspect a supported CSV or Apple Health XML export, choose dates and record types, remove location and identifiers, reduce timestamp precision, and download a cleaned copy with a provenance note.",
+  "non_goals": [
+    "Health analysis",
+    "Cloud transfer or retention",
+    "Vendor scraping",
+    "EHR integration",
+    "Anonymization guarantees"
+  ],
+  "constraints": [
+    "Never claim anonymization",
+    "Process only in the browser",
+    "Defend parsers against large and malformed files",
+    "Document residual re-identification risk and supported source limits"
+  ]
+}
