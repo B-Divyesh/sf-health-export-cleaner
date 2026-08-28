@@ -112,24 +112,24 @@ export function toCsv(headers: string[], rows: Record<string, string>[]): string
   return `${[headers.map(encode).join(','), ...rows.map((row) => headers.map((header) => encode(row[header] ?? '')).join(','))].join('\r\n')}\r\n`;
 }
 
-export function provenanceText(dataset: Dataset, settings: CleanerSettings, result: CleanResult): string {
+export function fileDetailsAndRiskText(dataset: Dataset, settings: CleanerSettings, result: CleanResult): string {
   const removedTypes = [...new Set(dataset.records.map((record) => record.type))].filter((type) => !settings.selectedTypes.includes(type));
   return [
-    'HEALTH EXPORT CLEANER — PROVENANCE NOTE',
+    'HEALTH EXPORT CLEANER — FILE DETAILS AND RISK NOTE',
     '',
     `Created: ${new Date().toISOString()}`,
     'Source filename: omitted to avoid sharing an identifier from the original file.',
     `Source format: ${dataset.kind.toUpperCase()}`,
     `Input records: ${dataset.records.length}`,
     `Output records: ${result.rows.length}`,
-    `Date boundary: ${settings.startDate || 'not set'} through ${settings.endDate || 'not set'}`,
+    `Date range: ${settings.startDate || 'not set'} through ${settings.endDate || 'not set'}`,
     `Timestamp precision: ${settings.timePrecision}`,
     `Included record types: ${settings.selectedTypes.join(', ') || 'none'}`,
     `Excluded record types: ${removedTypes.join(', ') || 'none'}`,
     `Included fields: ${result.headers.join(', ') || 'none'}`,
     `Removed fields: ${result.removedFields.join(', ') || 'none'}`,
-    `Rows outside date boundary: ${result.omittedByDate}`,
-    `Rows without usable date under active boundary: ${result.omittedWithoutUsableDate}`,
+    `Rows outside date range: ${result.omittedByDate}`,
+    `Rows without usable date under active date range: ${result.omittedWithoutUsableDate}`,
     `Rows with excluded type: ${result.omittedByType}`,
     '',
     'Privacy note',

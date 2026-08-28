@@ -50,7 +50,7 @@ export function parseHealthCsv(text: string): Omit<Dataset, 'kind' | 'filename' 
     headers.forEach((header, index) => { fields[header] = sourceRow[index] ?? ''; });
     records.push({ type: typeHeader ? fields[typeHeader] || 'Unspecified' : 'CSV record', fields });
   }
-  if (!records.length) throw new Error('The CSV has headers but no data rows.');
+  if (!records.length) throw new Error('The CSV has headers but no data rows. Export a CSV with at least one health record, then try again.');
   const warnings = [
     ...(!typeHeader ? ['No record-type column was detected; all rows are grouped as “CSV record”.'] : []),
     ...(uneven ? [`${uneven.toLocaleString()} row${uneven === 1 ? '' : 's'} had a different number of columns and were padded or trimmed.`] : [])
@@ -138,7 +138,7 @@ export function parseHealthXml(text: string): Omit<Dataset, 'kind' | 'filename' 
       continue;
     }
     if (/^<!DOCTYPE\b/i.test(text.slice(nextTag, nextTag + 10))) {
-      throw new Error('This XML is not a supported Apple Health export: document type declarations are not supported. Export the file again from Apple Health.');
+      throw new Error('This XML contains a declaration the cleaner cannot read. Export a fresh file from Apple Health and try again.');
     }
     if (text.startsWith('<!', nextTag)) throw malformedXml('unsupported declaration');
 
@@ -155,7 +155,7 @@ export function parseHealthXml(text: string): Omit<Dataset, 'kind' | 'filename' 
 
     const { name, attributes, selfClosing } = parseOpeningTag(token);
     if (!rootSeen) {
-      if (name !== 'HealthData') throw new Error('This XML is not a supported Apple Health export: the HealthData element is missing.');
+      if (name !== 'HealthData') throw new Error('This file is missing the Apple Health data section. Export it again from Apple Health, then try the new file.');
       rootSeen = true;
     } else if (rootClosed) {
       throw malformedXml('more than one root element');
@@ -172,7 +172,7 @@ export function parseHealthXml(text: string): Omit<Dataset, 'kind' | 'filename' 
       rootClosed = true;
     }
   }
-  if (!rootSeen) throw new Error('This XML is not a supported Apple Health export: the HealthData element is missing.');
+  if (!rootSeen) throw new Error('This file is missing the Apple Health data section. Export it again from Apple Health, then try the new file.');
   if (stack.length) throw malformedXml(`an unclosed <${stack[stack.length - 1]}> element`);
   if (!rootClosed) throw malformedXml('an unclosed HealthData element');
   if (!records.length) throw new Error('No Apple Health Record elements were found. Workouts, routes, and clinical records are not supported in v1.');

@@ -4,7 +4,7 @@
     "claim": "Try a sample health export without saving it to real cleaner preferences.",
     "where": "landing action and demo banner",
     "test": "npm run test:e2e -- --grep @claim:sample-demo",
-    "sandbox": "fresh browser context opens /demo; assert the sample is ready, the banner is present, and the only preference database uses the demo: namespace"
+    "sandbox": "fresh browser context opens /demo and /?demo=1; assert the sample and banner, reset it, verify the demo: preference namespace, then leave and verify it is discarded"
   },
   {
     "id": "supported-sources",
@@ -60,7 +60,7 @@
     "claim": "Filters by date and record type, removes chosen fields, and reduces timestamps to day or hour.",
     "where": "landing cleaner and README",
     "test": "npm run test:e2e -- --grep @claim:minimization-controls",
-    "sandbox": "fresh /demo context sets a date boundary, removes a record type and field, selects hour precision, and inspects the downloaded CSV"
+    "sandbox": "fresh /demo context sets a date range, removes a record type and field, selects hour precision, and inspects the downloaded CSV"
   },
   {
     "id": "csv-conventions",
@@ -78,7 +78,7 @@
   },
   {
     "id": "clean-package",
-    "claim": "Downloads a cleaned CSV and provenance note in one ZIP.",
+    "claim": "Downloads a cleaned CSV, file details, and a risk note in one ZIP.",
     "where": "download panel and README",
     "test": "npm run test:e2e -- --grep @claim:clean-package",
     "sandbox": "fresh /demo context downloads the sample output and inspects both archive entries"
@@ -99,7 +99,7 @@
   },
   {
     "id": "strict-parser",
-    "claim": "The parser uses structural limits and rejects malformed quoted CSV input and invalid or unrelated XML.",
+    "claim": "The parser rejects broken CSV and invalid or unrelated XML, and stops files over its limits.",
     "where": "README",
     "test": "npm run test:e2e -- --grep @claim:strict-parser",
     "sandbox": "fresh /demo context uploads unclosed and trailing-text quoted CSV, incomplete and comment-only Apple XML, then unrelated XML; asserts specific errors and sample recovery"
@@ -110,5 +110,19 @@
     "where": "landing preference tools and README demo/privacy sections",
     "test": "npm run test:e2e -- --grep @claim:preference-portability",
     "sandbox": "fresh /demo context exports hour precision and verifies the exact JSON, then imports day precision and observes the selected control"
+  },
+  {
+    "id": "update-ready",
+    "claim": "Shows when an installed app update is ready and activates it only after the user chooses Refresh now.",
+    "where": "in-app update notice",
+    "test": "npm run test:e2e -- --grep @claim:update-ready",
+    "sandbox": "fresh browser context installs the service worker, registers a changed worker, observes the update notice, activates it, and reloads"
+  },
+  {
+    "id": "designed-404",
+    "claim": "Unknown addresses receive the styled 404 page with HTTP 404 on Static Web Apps.",
+    "where": "README and static hosting configuration",
+    "test": "npm run test:e2e -- --grep @claim:designed-404",
+    "sandbox": "fresh build inspects the Static Web Apps response override and opens the styled 404 page with a working route home"
   }
 ]

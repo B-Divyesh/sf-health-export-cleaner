@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_FILE_BYTES, MAX_RECORDS, parseCsvRows, parseHealthCsv, parseHealthFile, parseHealthXml } from '../src/parser';
-import { binTimestamp, cleanDataset, isSensitiveField, provenanceText, toCsv } from '../src/cleaner';
+import { binTimestamp, cleanDataset, fileDetailsAndRiskText, isSensitiveField, toCsv } from '../src/cleaner';
 import { createZip } from '../src/archive';
 import type { CleanerSettings, Dataset } from '../src/types';
 
@@ -40,6 +40,11 @@ describe('CSV parsing', () => {
       .toThrow(/text after a closing quote/i);
   });
 
+  it('explains how to recover when a CSV contains headers only', () => {
+    expect(() => parseHealthCsv('type,date,value'))
+      .toThrow('The CSV has headers but no data rows. Export a CSV with at least one health record, then try again.');
+  });
+
   it('groups a generic CSV without a type column and reports it', () => {
     const parsed = parseHealthCsv('date,value\n2026-08-28,120');
     expect(parsed.records[0].type).toBe('CSV record');
@@ -61,12 +66,12 @@ describe('resource limits', () => {
 
 describe('download package', () => {
   it('creates a ZIP containing both named artifacts', async () => {
-    const zip = createZip([{ name: 'cleaned.csv', content: 'value\r\n72' }, { name: 'provenance.txt', content: 'local only' }]);
+    const zip = createZip([{ name: 'cleaned.csv', content: 'value\r\n72' }, { name: 'file-details-and-risk.txt', content: 'local only' }]);
     const bytes = new Uint8Array(await zip.arrayBuffer());
     const text = new TextDecoder().decode(bytes);
     expect([...bytes.slice(0, 4)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
     expect(text).toContain('cleaned.csv');
-    expect(text).toContain('provenance.txt');
+    expect(text).toContain('file-details-and-risk.txt');
   });
 });
 
@@ -80,7 +85,12 @@ describe('Apple Health XML parsing', () => {
   });
 
   it('rejects unrelated XML', () => {
-    expect(() => parseHealthXml('<records><Record type="x"/></records>')).toThrow(/HealthData element is missing/);
+    expect(() => parseHealthXml('<records><Record type="x"/></records>')).toThrow('This file is missing the Apple Health data section. Export it again from Apple Health, then try the new file.');
+  });
+
+  it('explains how to recover from an unsupported document declaration', () => {
+    expect(() => parseHealthXml('<!DOCTYPE HealthData><HealthData><Record type="x"/></HealthData>'))
+      .toThrow('This XML contains a declaration the cleaner cannot read. Export a fresh file from Apple Health and try again.');
   });
 
   it('rejects an incomplete HealthData document before creating any records', () => {
@@ -159,12 +169,12 @@ describe('minimization', () => {
     const cleaned = cleanDataset(sensitiveDataset, sensitiveSettings);
     const entries = await readStoredZip(createZip([
       { name: 'verifier-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
-      { name: 'verifier-cleaned-provenance.txt', content: provenanceText(sensitiveDataset, sensitiveSettings, cleaned) }
+      { name: 'verifier-cleaned-file-details-and-risk.txt', content: fileDetailsAndRiskText(sensitiveDataset, sensitiveSettings, cleaned) }
     ]));
     const csv = entries.get('verifier-cleaned.csv') ?? '';
     expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
     expect(csv).not.toMatch(/P-123|S-456|R-789|Jane Doe|jane@example\.test|51\.5,-0\.1/);
-    expect(entries.get('verifier-cleaned-provenance.txt')).toContain('patientId, participantID, recordId, patientName, emailAddress, gpsCoordinates');
+    expect(entries.get('verifier-cleaned-file-details-and-risk.txt')).toContain('patientId, participantID, recordId, patientName, emailAddress, gpsCoordinates');
   });
 
   it('locks common government, medical-record, and telephone identifier aliases out of the actual ZIP CSV payload', async () => {
@@ -187,14 +197,14 @@ describe('minimization', () => {
     const cleaned = cleanDataset(directIdentifierDataset, directIdentifierSettings);
     const entries = await readStoredZip(createZip([
       { name: 'direct-identifiers-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
-      { name: 'direct-identifiers-provenance.txt', content: provenanceText(directIdentifierDataset, directIdentifierSettings, cleaned) }
+      { name: 'direct-identifiers-file-details-and-risk.txt', content: fileDetailsAndRiskText(directIdentifierDataset, directIdentifierSettings, cleaned) }
     ]));
     const csv = entries.get('direct-identifiers-cleaned.csv') ?? '';
     expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
     expect(csv).not.toMatch(/111-22-3333|MRN-42|MED-7|\+1-202-555-0100/);
   });
 
-  it('fails closed for missing or invalid dates when a date boundary is active and records that exclusion in the package', async () => {
+  it('fails closed for missing or invalid dates when a date range is active and records that exclusion in the download ZIP', async () => {
     const boundedDataset: Dataset = {
       kind: 'csv', filename: 'bounded.csv', size: 180, warnings: [],
       headers: ['type', 'date', 'value', 'notes'],
@@ -214,12 +224,12 @@ describe('minimization', () => {
     expect(cleaned.omittedWithoutUsableDate).toBe(2);
     const entries = await readStoredZip(createZip([
       { name: 'bounded-cleaned.csv', content: toCsv(cleaned.headers, cleaned.rows) },
-      { name: 'bounded-provenance.txt', content: provenanceText(boundedDataset, boundedSettings, cleaned) }
+      { name: 'bounded-file-details-and-risk.txt', content: fileDetailsAndRiskText(boundedDataset, boundedSettings, cleaned) }
     ]));
     const csv = entries.get('bounded-cleaned.csv') ?? '';
     expect(csv).toBe('type,date,value,notes\r\nHeartRate,2026-08-20,72,inside\r\n');
     expect(csv).not.toMatch(/UNDATED-ROW|INVALID-DATE-ROW|outside/);
-    expect(entries.get('bounded-provenance.txt')).toContain('Rows without usable date under active boundary: 2');
+    expect(entries.get('bounded-file-details-and-risk.txt')).toContain('Rows without usable date under active date range: 2');
   });
 
   it('recognizes recorded_at as a timestamp field for bounds and filtering', () => {
@@ -242,6 +252,6 @@ describe('minimization', () => {
   it('quotes output and produces an explicit risk note', () => {
     expect(toCsv(['note'], [{ note: 'a, "quote"' }])).toContain('"a, ""quote"""');
     const output = cleanDataset(dataset, settings);
-    expect(provenanceText(dataset, settings, output)).toMatch(/Minimization is not anonymization/);
+    expect(fileDetailsAndRiskText(dataset, settings, output)).toMatch(/Minimization is not anonymization/);
   });
 });

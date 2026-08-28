@@ -1,7 +1,7 @@
 # Health Export Cleaner
 
-Health Export Cleaner helps wearable users clean a smaller health export before
-sharing it. <!-- claim:minimization-controls --> It opens supported CSV or Apple Health XML exports, then lets the
+Health Export Cleaner helps wearable users make a cleaned copy of a health export
+before sharing it. <!-- claim:minimization-controls --> It opens supported CSV or Apple Health XML exports, then lets the
 user:
 
 - choose a date range and record types; <!-- claim:minimization-controls -->
@@ -9,7 +9,7 @@ user:
 - always remove common identifiers, device details, GPS, routes, and location; <!-- claim:identifier-removal -->
 - reduce timestamps to a day or hour; <!-- claim:minimization-controls -->
 - preview the result and the exact number of removed rows and fields; and <!-- claim:removal-receipt -->
-- download one ZIP containing a cleaned CSV and a provenance/risk note. <!-- claim:clean-package -->
+- download one ZIP containing a cleaned CSV, file details, and a risk note. <!-- claim:clean-package -->
 
 Health records stay in page memory and are not uploaded or retained. Only the
 timestamp-precision preference is saved in IndexedDB. The app works offline
@@ -20,7 +20,7 @@ after its first visit. <!-- claim:local-processing --> <!-- claim:preference-por
 Open `/demo` (or `/?demo=1`) to load sample wearable records immediately. Demo
 preferences use a separate `demo:health-export-cleaner` IndexedDB database;
 they never touch the normal cleaner preferences. The demo banner can reset the
-sample or discard its preference before starting for real. See
+sample or discard its preference before cleaning your own file. See
 [.factory/demo.md](.factory/demo.md) for the sample and reset details. <!-- claim:sample-demo -->
 
 The cleaner needs no account or installation. <!-- claim:no-setup -->
@@ -28,7 +28,7 @@ The cleaner needs no account or installation. <!-- claim:no-setup -->
 ## Supported sources and limits
 
 - CSV with a header row. Common `type`, date, and timestamp column names
-  (including `recorded_at`) are detected. When a date boundary is set, rows
+  (including `recorded_at`) are detected. When a date range is set, rows
   without a usable date are excluded rather than guessed. A CSV without a type
   column is treated as one record type. <!-- claim:csv-conventions -->
 - Apple Health `export.xml`. Version 1 intentionally reads `<Record>` elements
@@ -51,7 +51,7 @@ npm run dev
 ```
 
 The local development server is printed by Vite (normally
-`http://localhost:5173`). There are no runtime API keys or services.
+`http://localhost:5173`).
 
 ## Test and build
 
@@ -65,14 +65,14 @@ npm run build     # reproducible production build in ./dist
 npm run preview   # serve ./dist at http://127.0.0.1:4173
 ```
 
-To run the same browser matrix against the deployed app, set
+To run the same browser checks against the deployed app, set
 `PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in` before
 `npm run test:e2e`.
 
 `dist/index.html` is the static deployment entry. `/privacy/` and `/terms/`
-are emitted as standalone pages. `/demo` is the isolated sample route and an
+are emitted as standalone pages. `/demo` is the isolated sample route. An
 unknown address receives the styled `404.html` response with HTTP 404 on Static
-Web Apps.
+Web Apps. <!-- claim:designed-404 -->
 
 ## Privacy and security model
 
@@ -82,9 +82,9 @@ included. <!-- claim:first-party-runtime --> Health records remain in page memor
 close. <!-- claim:local-processing --> See the in-product [privacy notice](https://health-export-cleaner.sociobot.in/privacy/)
 for details.
 
-The parser uses structural limits and rejects malformed quoted CSV input and
-invalid or unrelated XML. These controls are resource-safety measures, not a guarantee
-that a vendor-defined column is non-sensitive. <!-- claim:strict-parser -->
+The parser rejects broken CSV and invalid or unrelated XML. It also stops files
+that exceed the size or record limits. These checks cannot tell whether a
+vendor’s field contains sensitive data. <!-- claim:strict-parser -->
 
 ## License
 

@@ -50,7 +50,7 @@ describe('visitor claims contract', () => {
 
   it('keeps every verifier-cited promise explicit and mapped', () => {
     expect(html).toContain('No account or installation required.');
-    expect(html).toContain('Free to use. MIT-licensed source code.');
+    expect(html).toContain('Free to use under the MIT License.');
     expect(readme).toContain('No third-party runtime scripts, fonts, analytics, or trackers are');
     expect(readme).toContain('including `recorded_at`');
     expect(readme).toContain('A CSV without a type');

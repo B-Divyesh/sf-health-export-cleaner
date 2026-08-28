@@ -1,6 +1,7 @@
 import './styles.css';
 import { createZip } from './archive';
-import { binTimestamp, cleanDataset, getDateBounds, isSensitiveField, isTimestampField, provenanceText, toCsv } from './cleaner';
+import { binTimestamp, cleanDataset, fileDetailsAndRiskText, getDateBounds, isSensitiveField, isTimestampField, toCsv } from './cleaner';
+import { setupRouteFocus } from './route-focus';
 import { formatBytes, parseHealthFile } from './parser';
 import { clearDemoPreferences, loadPreferences, savePreferences, useDemoStorage } from './storage';
 import type { CleanerSettings, CleanResult, Dataset, TimePrecision } from './types';
@@ -137,7 +138,7 @@ function updatePreview(): void {
   const leftOut = result.omittedByDate + result.omittedWithoutUsableDate + result.omittedByType;
   byId('output-count').textContent = `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? '' : 's'}`;
   byId('kept-summary').textContent = `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? '' : 's'} kept`;
-  byId('kept-detail').textContent = settings.startDate || settings.endDate ? 'inside your boundary' : 'matching selected types';
+  byId('kept-detail').textContent = settings.startDate || settings.endDate ? 'inside your date range' : 'matching selected types';
   byId('removed-summary').textContent = `${leftOut.toLocaleString()} row${leftOut === 1 ? '' : 's'} left out`;
   byId('removed-detail').textContent = `${result.omittedByDate.toLocaleString()} outside range · ${result.omittedWithoutUsableDate.toLocaleString()} without usable date · ${result.omittedByType.toLocaleString()} by type`;
   byId('fields-summary').textContent = `${result.removedFields.length.toLocaleString()} field${result.removedFields.length === 1 ? '' : 's'} removed`;
@@ -152,7 +153,7 @@ function updatePreview(): void {
     noOutput.textContent = 'No record types are selected. Select at least one record type to include rows.';
     noOutput.hidden = false;
   } else if (!result.rows.length) {
-    noOutput.textContent = 'No records match this date boundary. Widen the dates to include rows.';
+    noOutput.textContent = 'No records match this date range. Widen the dates to include rows.';
     noOutput.hidden = false;
   } else noOutput.hidden = true;
   const download = byId<HTMLButtonElement>('download-button');
@@ -213,9 +214,9 @@ byId('download-button').addEventListener('click', () => {
   const settings = getSettings(); const base = 'health-export-cleaned';
   const archive = createZip([
     { name: `${base}.csv`, content: toCsv(result.headers, result.rows) },
-    { name: `${base}-provenance.txt`, content: provenanceText(dataset, settings, result) }
+    { name: `${base}-file-details-and-risk.txt`, content: fileDetailsAndRiskText(dataset, settings, result) }
   ]);
-  downloadBlob(`${base}-package.zip`, archive);
+  downloadBlob(`${base}-copy.zip`, archive);
 });
 
 byId('export-settings').addEventListener('click', () => downloadText('health-export-cleaner-preferences.json', JSON.stringify({ version: 1, timePrecision: getSettings().timePrecision }, null, 2), 'application/json'));
@@ -257,11 +258,14 @@ if (isDemo) {
   });
   byId<HTMLAnchorElement>('start-real').addEventListener('click', async (event) => {
     event.preventDefault();
+    useDemoStorage(false);
     await clearDemoPreferences();
     window.location.assign('/');
   });
   loadSample();
 }
+
+setupRouteFocus(isDemo);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {

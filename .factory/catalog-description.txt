@@ -1,0 +1,1 @@
+Clean health exports locally by removing identifiers, locations, unwanted records, and precise times.

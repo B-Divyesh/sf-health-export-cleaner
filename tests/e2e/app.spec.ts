@@ -41,7 +41,18 @@ test('@claim:sample-demo loads sample data in a separate disposable preference n
   await page.getByRole('button', { name: 'Reset demo' }).click();
   await expect(page.getByRole('radio', { name: /Day/ })).toBeChecked();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
-  await expect(page.getByRole('link', { name: 'Start for real' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Clean my own file' })).toBeVisible();
+
+  await page.goto('/?demo=1');
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await page.getByRole('link', { name: 'Clean my own file' }).click();
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('#demo-banner')).toBeHidden();
+  await expect(page.locator('#configure-panel')).toBeHidden();
+  await expect.poll(() => page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name))).not.toContain('demo:health-export-cleaner');
 });
 
 test('@claim:supported-sources opens CSV and Apple Health XML from the demo entry point', async ({ page }) => {
@@ -61,14 +72,14 @@ test('@claim:no-setup cleans and exports from a fresh browser without an account
   await expect(page.locator('input[type="email"], input[type="password"]')).toHaveCount(0);
   await expect(page.getByText(/sign in|log in|create account/i)).toHaveCount(0);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
-  expect((await downloadPromise).suggestedFilename()).toBe('health-export-cleaned-package.zip');
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe('health-export-cleaned-copy.zip');
 });
 
 test('@claim:free-source exposes the free utility and its MIT-licensed source', async ({ page }) => {
   await page.goto('/demo');
-  await expect(page.locator('footer')).toContainText('Free to use. MIT-licensed source code.');
-  await expect(page.getByRole('link', { name: 'Source code' })).toHaveAttribute(
+  await expect(page.locator('footer')).toContainText('Free to use under the MIT License.');
+  await expect(page.getByRole('link', { name: 'Source code on GitHub (external site)' })).toHaveAttribute(
     'href',
     'https://github.com/B-Divyesh/sf-health-export-cleaner'
   );
@@ -84,7 +95,7 @@ test('@claim:first-party-runtime makes no third-party runtime requests during a 
   await expect(page.getByText('Source ready')).toBeVisible();
   await page.getByRole('radio', { name: /Hour/ }).check();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   await downloadPromise;
 
   const pageOrigin = new URL(page.url()).origin;
@@ -113,12 +124,12 @@ test('@claim:clean-package cleans a sample end to end and exposes both archive e
   await expect(page.getByText(/1 row left out/)).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/cleaned-package\.zip$/);
+  expect(download.suggestedFilename()).toMatch(/cleaned-copy\.zip$/);
   const entries = readStoredZip(await downloadBytes(download));
   expect(entries.get('health-export-cleaned.csv')).toContain('HeartRate');
-  expect(entries.get('health-export-cleaned-provenance.txt')).toContain('HEALTH EXPORT CLEANER — PROVENANCE NOTE');
+  expect(entries.get('health-export-cleaned-file-details-and-risk.txt')).toContain('HEALTH EXPORT CLEANER — FILE DETAILS AND RISK NOTE');
 });
 
 test('@claim:identifier-removal locks verifier identifiers out and excludes their values from the downloaded CSV', async ({ page }) => {
@@ -140,7 +151,7 @@ test('@claim:identifier-removal locks verifier identifiers out and excludes thei
   await expect(page.locator('#removed-fields-detail')).toHaveText('patientId, participantID, recordId, patientName, emailAddress, gpsCoordinates, deviceId, route, longitude');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const entries = readStoredZip(await downloadBytes(await downloadPromise));
   const csv = entries.get('health-export-cleaned.csv') ?? '';
   expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
@@ -155,12 +166,12 @@ test('uses neutral archive names and omits the personal source filename from sha
     buffer: Buffer.from('type,date,value,patientId,latitude\nHeartRate,2026-08-28,72,Jane-123,51.5')
   });
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('health-export-cleaned-package.zip');
+  expect(download.suggestedFilename()).toBe('health-export-cleaned-copy.zip');
   const entries = readStoredZip(await downloadBytes(download));
-  expect([...entries.keys()]).toEqual(['health-export-cleaned.csv', 'health-export-cleaned-provenance.txt']);
-  expect(entries.get('health-export-cleaned-provenance.txt')).toContain('Source filename: omitted');
+  expect([...entries.keys()]).toEqual(['health-export-cleaned.csv', 'health-export-cleaned-file-details-and-risk.txt']);
+  expect(entries.get('health-export-cleaned-file-details-and-risk.txt')).toContain('Source filename: omitted');
   expect(JSON.stringify([...entries.entries()])).not.toContain(filename);
 });
 
@@ -176,6 +187,8 @@ test('@claim:removal-receipt previews exact kept, omitted, and removed-field cou
 
 test('@claim:strict-parser rejects malformed CSV and invalid or unrelated XML with recovery guidance', async ({ page }) => {
   await page.goto('/demo');
+  await page.locator('#file-input').setInputFiles({ name: 'headers-only.csv', mimeType: 'text/csv', buffer: Buffer.from('type,date,value') });
+  await expect(page.locator('#error-box')).toHaveText('The CSV has headers but no data rows. Export a CSV with at least one health record, then try again.');
   await page.locator('#file-input').setInputFiles({ name: 'broken.csv', mimeType: 'text/csv', buffer: Buffer.from('type,value\nHeartRate,"72') });
   await expect(page.locator('#error-box')).toContainText('unclosed quoted field');
   await page.locator('#file-input').setInputFiles({
@@ -193,8 +206,10 @@ test('@claim:strict-parser rejects malformed CSV and invalid or unrelated XML wi
     buffer: Buffer.from('<HealthData><!-- <Record type="COMMENT-ONLY-SECRET" value="72"/> --></HealthData>')
   });
   await expect(page.locator('#error-box')).toContainText('No Apple Health Record elements');
+  await page.locator('#file-input').setInputFiles({ name: 'declaration.xml', mimeType: 'application/xml', buffer: Buffer.from('<!DOCTYPE HealthData><HealthData><Record type="x"/></HealthData>') });
+  await expect(page.locator('#error-box')).toHaveText('This XML contains a declaration the cleaner cannot read. Export a fresh file from Apple Health and try again.');
   await page.locator('#file-input').setInputFiles({ name: 'unrelated.xml', mimeType: 'application/xml', buffer: Buffer.from('<records><Record type="x"/></records>') });
-  await expect(page.locator('#error-box')).toContainText('HealthData element is missing');
+  await expect(page.locator('#error-box')).toHaveText('This file is missing the Apple Health data section. Export it again from Apple Health, then try the new file.');
   await page.getByRole('button', { name: 'Try it with sample data' }).click();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
 });
@@ -237,7 +252,7 @@ test('locks ordinary government, medical-record, and phone identifiers out of th
     await expect(row.locator('input')).toBeDisabled();
   }
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const entries = readStoredZip(await downloadBytes(await downloadPromise));
   const csv = entries.get('health-export-cleaned.csv') ?? '';
   expect(csv).toBe('type,date,value\r\nHeartRate,2026-08-28,72\r\n');
@@ -263,12 +278,12 @@ test('@claim:csv-conventions recognizes recorded_at, fails closed on missing dat
   await expect(page.locator('#kept-summary')).toHaveText('1 row kept');
   await expect(page.locator('#removed-detail')).toHaveText('1 outside range · 1 without usable date · 0 by type');
   const boundedDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const boundedEntries = readStoredZip(await downloadBytes(await boundedDownload));
   const boundedCsv = boundedEntries.get('health-export-cleaned.csv') ?? '';
   expect(boundedCsv).toBe('type,date,value,notes\r\nHeartRate,2026-08-20,72,inside\r\n');
   expect(boundedCsv).not.toMatch(/UNDATED-ROW|outside/);
-  expect(boundedEntries.get('health-export-cleaned-provenance.txt')).toContain('Rows without usable date under active boundary: 1');
+  expect(boundedEntries.get('health-export-cleaned-file-details-and-risk.txt')).toContain('Rows without usable date under active date range: 1');
 
   await page.locator('#file-input').setInputFiles({
     name: 'recorded-at.csv', mimeType: 'text/csv', buffer: Buffer.from('recorded_at,value\n2026-08-28T12:00:00Z,8')
@@ -280,7 +295,7 @@ test('@claim:csv-conventions recognizes recorded_at, fails closed on missing dat
   await page.locator('#end-date').fill('2026-08-30');
   await expect(page.locator('#kept-summary')).toHaveText('0 rows kept');
   await expect(page.locator('#removed-detail')).toHaveText('1 outside range · 0 without usable date · 0 by type');
-  await expect(page.getByRole('button', { name: /Download clean package/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Download cleaned copy/ })).toBeDisabled();
 });
 
 test('@claim:minimization-controls applies dates, types, fields, and timestamp precision to the clean CSV', async ({ page }) => {
@@ -297,7 +312,7 @@ test('@claim:minimization-controls applies dates, types, fields, and timestamp p
   await page.getByRole('checkbox', { name: /StepCount/ }).uncheck();
   await page.locator('#end-date').fill('2026-08-20');
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const entries = readStoredZip(await downloadBytes(await downloadPromise));
   const csv = entries.get('health-export-cleaned.csv') ?? '';
   expect(csv).toContain('2026-08-20 08:00');
@@ -306,7 +321,7 @@ test('@claim:minimization-controls applies dates, types, fields, and timestamp p
   const available = page.locator('input[name="field"]:not(:disabled)');
   for (let index = 0; index < await available.count(); index += 1) await available.nth(index).uncheck();
   await expect(page.locator('#no-output')).toHaveText('No fields are selected. Select at least one available field to create a cleaned copy.');
-  await expect(page.getByRole('button', { name: /Download clean package/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Download cleaned copy/ })).toBeDisabled();
 });
 
 test('@claim:apple-record-scope imports Record entries and omits unsupported Apple Health sections', async ({ page }) => {
@@ -327,7 +342,7 @@ test('@claim:apple-record-scope imports Record entries and omits unsupported App
   await expect(page.locator('#source-count')).toHaveText('1');
   await expect(page.locator('#source-warnings')).toContainText('Workout elements are not included');
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Download clean package/ }).click();
+  await page.getByRole('button', { name: /Download cleaned copy/ }).click();
   const entries = readStoredZip(await downloadBytes(await downloadPromise));
   const exported = JSON.stringify([...entries.entries()]);
   expect(exported).toContain('HeartRate');
@@ -446,7 +461,7 @@ test('shows the first action, explanation, and all three facts inside a 1366 by 
   await page.goto('/');
   for (const locator of [
     page.getByRole('link', { name: 'Try it with sample data' }),
-    page.getByText('See a cleaned sample export immediately.'),
+    page.getByText('See a cleaned copy immediately.'),
     page.getByText('Opens CSV and Apple Health XML'),
     page.getByText('Health records stay in this browser tab'),
     page.getByText('Works offline after the first visit')
@@ -469,22 +484,67 @@ test('serves the styled offline fallback for an uncached route without inline CS
   expect(await page.locator('style').count()).toBe(0);
 });
 
-test('declares route metadata, social preview, provenance disclosure, and a visible build identity', async ({ page }) => {
-  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/404.html']) {
-    await page.goto(path);
+test('declares route metadata, social preview, image provenance disclosure, and a visible build identity', async ({ page }) => {
+  const routes = [
+    { path: '/', title: 'Health Export Cleaner — minimize health files locally', canonical: '/' },
+    { path: '/demo', title: 'Demo — Health Export Cleaner', canonical: '/demo' },
+    { path: '/privacy/', title: 'Privacy — Health Export Cleaner', canonical: '/privacy/' },
+    { path: '/terms/', title: 'Terms — Health Export Cleaner', canonical: '/terms/' },
+    { path: '/404.html', title: 'Page not found — Health Export Cleaner', canonical: '/404.html' }
+  ];
+  for (const route of routes) {
+    await page.goto(route.path);
+    await expect(page).toHaveTitle(route.title);
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://health-export-cleaner.sociobot.in${route.canonical}`);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /^.{1,155}$/);
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
     await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /health-export-cleaner-social\.jpg$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.locator('footer')).toContainText('v1.0.2');
+    await expect(page.locator('footer')).toContainText('v1.0.3');
     await expect(page.locator('footer')).toContainText('Built by Param Factory');
   }
   await page.goto('/');
   await expect(page.locator('footer')).toContainText('Illustration generated for this product');
 });
 
-test('announces and activates an available service-worker update', async ({ page }) => {
+test('uses shared route chrome and restores heading focus through Privacy, Terms, back, forward, and 404', async ({ page }) => {
+  await page.goto('/');
+  const expectedPrimary = ['Demo', 'Privacy', 'Terms'];
+  const expectedFooter = ['Demo', 'Privacy', 'Terms', 'Source code on GitHub (external site)'];
+  for (const path of ['/', '/privacy/', '/terms/', '/404.html']) {
+    await page.goto(path);
+    await expect(page.locator('.wordmark .wordmark-mark')).toHaveText('H//');
+    await expect(page.locator('.wordmark span').last()).toHaveText('Health Export Cleaner');
+    await expect(page.locator('.site-nav a')).toHaveText(expectedPrimary);
+    await expect(page.locator('footer nav a')).toHaveText(expectedFooter);
+    await expect(page.locator('footer')).toContainText('Clean a health export before you share it.');
+    await expect(page.locator('footer')).toContainText('Built by Param Factory');
+  }
+
+  await page.goto('/');
+  await page.locator('.site-nav').getByRole('link', { name: 'Privacy' }).click();
+  await expect(page).toHaveURL('/privacy/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-status')).toHaveText('Privacy');
+  await page.locator('.site-nav').getByRole('link', { name: 'Terms' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goBack();
+  await expect(page).toHaveURL('/privacy/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goBack();
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goForward();
+  await expect(page).toHaveURL('/privacy/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.goto('/404.html');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-status')).toHaveText('This page is not on the bench');
+});
+
+test('@claim:update-ready announces and activates an available service-worker update', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
@@ -500,7 +560,7 @@ test('is usable at a 390px mobile viewport', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Try it with sample data' }).click();
-  await expect(page.getByRole('button', { name: /Download clean package/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Download cleaned copy/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const targets = page.locator('.wordmark, footer nav a');
   for (let index = 0; index < await targets.count(); index += 1) {
@@ -508,10 +568,10 @@ test('is usable at a 390px mobile viewport', async ({ page }) => {
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect(box?.width).toBeGreaterThanOrEqual(44);
   }
-  await expect(page.getByRole('link', { name: 'H// Health Export Cleaner home' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'H// Health Export Cleaner' })).toBeVisible();
 });
 
-test('declares a styled 404 response instead of rewriting unknown URLs to the app', async ({ page }) => {
+test('@claim:designed-404 declares a styled 404 response instead of rewriting unknown URLs to the app', async ({ page }) => {
   const config = JSON.parse(await readFile('public/staticwebapp.config.json', 'utf8')) as { navigationFallback?: unknown; routes?: Array<{ route?: string; rewrite?: string }>; responseOverrides?: Record<string, { rewrite?: string; statusCode?: number }> };
   expect(config.navigationFallback).toBeUndefined();
   expect(config.routes).toContainEqual({ route: '/demo', rewrite: '/index.html' });
