@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCsvRows, parseHealthCsv, parseHealthXml } from '../src/parser';
+import { MAX_FILE_BYTES, MAX_RECORDS, parseCsvRows, parseHealthCsv, parseHealthFile, parseHealthXml } from '../src/parser';
 import { binTimestamp, cleanDataset, isSensitiveField, provenanceText, toCsv } from '../src/cleaner';
 import { createZip } from '../src/archive';
 import type { CleanerSettings, Dataset } from '../src/types';
@@ -40,6 +40,18 @@ describe('CSV parsing', () => {
     expect(parsed.records[0].type).toBe('CSV record');
     expect(parsed.warnings[0]).toMatch(/No record-type column/);
   });
+});
+
+describe('resource limits', () => {
+  it('rejects a file over 100 MB before reading and rejects record 500,001', async () => {
+    const oversized = { name: 'too-large.csv', size: MAX_FILE_BYTES + 1, text: async () => 'type,date\nHeartRate,2026-08-28' } as File;
+    await expect(parseHealthFile(oversized)).rejects.toThrow(/100 MB safety limit/);
+    expect(MAX_FILE_BYTES).toBe(100 * 1024 * 1024);
+    expect(MAX_RECORDS).toBe(500_000);
+    const rows = ['type,date'];
+    for (let index = 0; index <= MAX_RECORDS; index += 1) rows.push(`HeartRate,2026-08-${String((index % 28) + 1).padStart(2, '0')}`);
+    expect(() => parseHealthCsv(rows.join('\n'))).toThrow(/more than 500,000 records/);
+  }, 20_000);
 });
 
 describe('download package', () => {

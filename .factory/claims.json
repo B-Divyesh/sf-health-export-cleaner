@@ -40,5 +40,26 @@
     "where": "download panel and README",
     "test": "npm run test:e2e -- --grep @claim:clean-package",
     "sandbox": "fresh /demo context downloads the sample output and inspects both archive entries"
+  },
+  {
+    "id": "safety-limits",
+    "claim": "Files are limited to 100 MB and 500,000 records for safety.",
+    "where": "intake panel and README",
+    "test": "npm run test:e2e -- --grep @claim:safety-limits",
+    "sandbox": "fresh /demo context sends a 100 MB plus one byte File and a 500,001-row CSV through the intake; both are rejected before a cleaned copy can be made"
+  },
+  {
+    "id": "removal-receipt",
+    "claim": "Preview the result and the exact number of removed rows and fields.",
+    "where": "output receipt and README",
+    "test": "npm run test:e2e -- --grep @claim:removal-receipt",
+    "sandbox": "fresh /demo context narrows the sample date range and asserts the kept, omitted, and removed-field counts shown in the receipt"
+  },
+  {
+    "id": "strict-parser",
+    "claim": "The parser uses structural limits and rejects malformed quoted CSV input or unrelated XML.",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:strict-parser",
+    "sandbox": "fresh /demo context uploads malformed CSV then unrelated XML and asserts the specific errors and sample recovery"
   }
 ]

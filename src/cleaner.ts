@@ -118,7 +118,7 @@ export function provenanceText(dataset: Dataset, settings: CleanerSettings, resu
     'HEALTH EXPORT CLEANER — PROVENANCE NOTE',
     '',
     `Created: ${new Date().toISOString()}`,
-    `Source file: ${dataset.filename}`,
+    'Source filename: omitted to avoid sharing an identifier from the original file.',
     `Source format: ${dataset.kind.toUpperCase()}`,
     `Input records: ${dataset.records.length}`,
     `Output records: ${result.rows.length}`,

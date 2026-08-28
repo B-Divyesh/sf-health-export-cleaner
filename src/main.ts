@@ -184,10 +184,6 @@ function downloadBlob(name: string, blob: Blob): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function baseName(filename: string): string {
-  return filename.replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'health-export';
-}
-
 fileInput.addEventListener('change', () => { const file = fileInput.files?.[0]; if (file) void inspectFile(file); });
 ['dragenter', 'dragover'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add('is-dragging'); }));
 ['dragleave', 'drop'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
@@ -214,7 +210,7 @@ byId('clear-button').addEventListener('click', () => {
 
 byId('download-button').addEventListener('click', () => {
   if (!dataset || !result) return;
-  const settings = getSettings(); const base = `${baseName(dataset.filename)}-cleaned`;
+  const settings = getSettings(); const base = 'health-export-cleaned';
   const archive = createZip([
     { name: `${base}.csv`, content: toCsv(result.headers, result.rows) },
     { name: `${base}-provenance.txt`, content: provenanceText(dataset, settings, result) }
@@ -247,6 +243,10 @@ void loadPreferences().then((preferences) => {
 
 if (isDemo) {
   document.title = 'Demo — Health Export Cleaner';
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', 'https://health-export-cleaner.sociobot.in/demo');
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', 'https://health-export-cleaner.sociobot.in/demo');
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', 'Demo — Health Export Cleaner');
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', 'Demo — Health Export Cleaner');
   const banner = byId<HTMLElement>('demo-banner');
   banner.hidden = false;
   byId('reset-demo').addEventListener('click', async () => {

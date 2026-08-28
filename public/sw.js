@@ -1,4 +1,4 @@
-const VERSION = 'health-cleaner-v4';
+const VERSION = 'health-cleaner-v5';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const SHELL = [
@@ -7,6 +7,7 @@ const SHELL = [
   '/demo',
   '/404.html',
   '/offline.html',
+  '/offline.css',
   '/privacy/',
   '/terms/',
   '/manifest.webmanifest',
@@ -17,7 +18,8 @@ const SHELL = [
   '/assets/sorting-bench-768.webp',
   '/assets/sorting-bench-1280.avif',
   '/assets/sorting-bench-1280.webp',
-  '/assets/sorting-bench-1280.jpg'
+  '/assets/sorting-bench-1280.jpg',
+  '/assets/health-export-cleaner-social.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -52,7 +54,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(async () => (await caches.match(event.request)) || (await caches.match('/')) || caches.match('/offline.html')));
+      .catch(async () => (await caches.match(event.request)) || caches.match('/offline.html')));
     return;
   }
 

@@ -114,3 +114,6 @@ neon, gradients, generic cyber-security symbols, blood, and hospital imagery.
 - Generated imagery is disclosed in the product footer. Functional line icons
   are original, authored in the application source, and MIT-licensed with the
   repository.
+- `public/assets/health-export-cleaner-social.jpg` is a 1200×630 crop derived
+  from the same reviewed `sorting-bench` generation on 2026-08-28. It is the
+  route social-preview image and contains no added text or third-party asset.

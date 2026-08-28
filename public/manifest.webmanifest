@@ -3,7 +3,7 @@
   "short_name": "Health Cleaner",
   "description": "Minimize health CSV and Apple Health XML exports locally.",
   "id": "/",
-  "start_url": "/?source=pwa-v2",
+  "start_url": "/?source=pwa-v3",
   "scope": "/",
   "display": "standalone",
   "background_color": "#e8e5dc",
