@@ -1,57 +1,51 @@
-# Polish round 2 handoff
+# Review round 3 handoff
 
 ## Status
 
-Accepted repair. Every finding in `review-1.md` and `review-2.md` is closed;
-there are no known gaps. The final product commits are
-`d7c5ce58b5039e272708068693972838edc79278` and
-`ca222626f51727bbc8b254e5f46c03933c9e9d7e`, both pushed to `main`.
+Review completed with verdict **FAIL**. One blocking finding is documented in
+`.factory/review-3.md`: demo Reset and exit can race and overwrite the real
+timestamp preference. No product code was changed.
 
-## What changed
+## What was done
 
-- Registered the Exact timestamp promise as `exact-timestamp` in
-  `.factory/claims.json`, marked its UI location, and added a real fresh-demo
-  download test. It asserts the source value `2026-08-20 08:12:41 +0000` is
-  retained in the cleaned CSV.
-- Advanced the PWA shell cache to `health-cleaner-v8`, PWA launch query to
-  `pwa-v4`, and visible build identity to v1.0.4.
-- Corrected the static Privacy, Terms, and 404 footers to the same v1.0.4 build
-  identity as the landing page, preserving the shared route chrome.
-- Updated the catalog sentence to a verb-first, 115-character description.
+- Re-ran the cold first read at 390 × 844 and 1440 × 900.
+- Audited all landing and README copy with word counts.
+- Exercised the one-click demo, Reset, exit, storage namespaces, downloads,
+  request log, and offline behavior.
+- Read `.factory/claims.json` and ran all 19 listed commands separately from a
+  fresh clone at `325629810d43ef4d36787a367d801521cc8406da`.
+- Read every earlier review, polish report, and handoff; independently checked
+  all 17 earlier findings in live behavior and source.
+- Checked route metadata, the designed 404, deep links, browser Back/focus,
+  every navigational link, shared chrome, accessibility, and visual identity.
 
-The full cumulative finding map and screenshots are in `.factory/polish-2.md`.
-
-## Verify
+## Verification
 
 ```sh
 npm ci
 npm run lint
 npm test
 npm run build
+PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
 ```
 
-Fresh clone evidence for final commit `ca222626f51727bbc8b254e5f46c03933c9e9d7e`:
+Results from the fresh clone:
 
-- `npm ci`: passed, 0 vulnerabilities.
-- All 19 `claims.json` commands ran separately and passed.
+- `npm ci`: passed with zero vulnerabilities.
+- All 19 claim commands: passed separately.
 - `npm run lint`: passed.
-- `npm test`: 31 unit/contract tests and 29 Playwright tests passed.
-- `npm run build`: passed and emitted `dist/`; main JS is 9.27 kB gzip and CSS
-  is 4.52 kB gzip.
-- Accessibility: the installed Playwright Axe checks found zero serious or
-  critical violations in empty/configured/legal states; keyboard, route focus,
-  mobile, privacy/network, offline, and service-worker tests are part of the
-  browser suite. The standalone Axe CLI was attempted but its ChromeDriver
-  could not find a system Chrome binary.
-- Local and cold-live `verify-url.sh` reports are under
-  `.factory/evidence/polish-2-local/` and `.factory/evidence/polish-2-live/`.
-  They show correct title/lang/h1/main/alt/labels and zero browser errors.
-- Live Playwright: 29/29 passed at
-  `https://health-export-cleaner.sociobot.in` after deployment.
+- `npm test`: passed, 31 unit/contract and 29 browser tests.
+- `npm run build`: passed and emitted `dist/`; main JS was 9.27 kB gzip.
+- Complete live suite: 29/29 passed.
 
-## Deployment
+The additional storage race is not covered by the current suite. The live
+reproduction seeds a normal Exact preference, enters demo, starts Reset, delays
+the demo IndexedDB deletion, then exits while the sample reload is in flight.
+Two of three repetitions replaced the real record with the demo Day setting.
 
-`dist/` deployed through `/opt/fleet/lib/deploy-static.sh health-export-cleaner dist`.
-Azure Static Web Apps deployment ID: `0eb9111b-efe9-4078-a69a-0bfac1933537`.
-Cold checks confirmed `/`, `/demo`, `/?demo=1`, `/privacy/`, and `/terms/` at
-HTTP 200, plus the styled unknown-route response at HTTP 404.
+## Required next step
+
+Keep the demo namespace immutable until navigation, cancel or await reset work
+before exit, handle blocked IndexedDB deletion, and extend
+`@claim:sample-demo` to prove a seeded real record remains byte-for-byte
+unchanged. Then rerun the full verification set.
