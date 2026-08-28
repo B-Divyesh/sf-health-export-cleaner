@@ -1,47 +1,79 @@
-# Review 1 handoff
+# Polish round 1 handoff
 
 ## Status
 
-Adversarial first-read review 1 is complete. Verdict: **FAIL** with 16 minor
-findings and no blocking findings. See `.factory/review-1.md`.
+**Complete and deployed.** All F-1-1 through F-1-16 findings from
+`.factory/review-1.md` are closed. No earlier review or polish report exists in
+this repository. The deployed repair artifact is commit
+`b97bf12f848f55b8e5f12b7e710dd6ce6201d192` at
+<https://health-export-cleaner.sociobot.in>.
 
-Product code was not changed.
+## What changed
 
-## What was reviewed
+- Rewrote the first-screen and workflow copy around one result term: “cleaned
+  copy.” The container is a download ZIP; its companion text is “file details
+  and risk note.” Date controls now consistently use “date range.”
+- Strengthened the isolated sample path. `/demo` and `/?demo=1` load the sample
+  in `demo:health-export-cleaner`, Reset restores it, and **Clean my own file**
+  waits for writes, deletes the demo database, and opens an empty real cleaner.
+- Added `update-ready` and `designed-404` to `.factory/claims.json`. There are
+  18 claims, each with exactly one tagged observable test.
+- Added real route focus and polite announcements. Privacy, Terms, 404, back,
+  and forward focus the one h1. Every route now uses the same full wordmark,
+  navigation, product one-liner, legal/external links, maker, and build ID.
+- Replaced three parser errors with plain recovery actions and added exact-text
+  unit/browser coverage.
+- Preserved the brutalist concrete-and-moss visual system and responsive PWA.
+  The catalog description is verb-first and 101 characters.
 
-- Cold live landing page at 390 × 844 and 1440 × 900
-- One-click demo, sample state, Reset, Start for real, and storage separation
-- Landing/error copy and every README sentence
-- Every `.factory/claims.json` command and the full local/deployed suites
-- Offline reload, network interception, routes, metadata, links, focus, shared
-  chrome, visual identity, accessibility, and repository history
-- Missed AI/import/export/sync leverage
+The finding-by-finding evidence map is in `.factory/polish-1.md`.
 
-## Verification
+## Verification evidence
+
+Run locally:
 
 ```sh
 npm ci
-npm test
 npm run lint
+npm test
 npm run build
-PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in npm run test:e2e
 ```
 
-Observed results:
+Results on 2026-08-28 UTC:
 
-- all 16 listed claim commands pass individually
-- `npm test`: 28 unit tests and 27 end-to-end tests pass
-- deployed suite: 27/27 pass
-- lint/build pass and `dist/` is emitted
-- live `verify-url.sh` passes with zero console errors
-- live axe CLI reports 0 violations
-- all crawled internal routes/assets and the GitHub link return 200
-- production JS is 9.14 kB gzip; CSS is 4.43 kB gzip
+- `npm ci`: 143 packages, 0 vulnerabilities.
+- `npm run lint`: passed.
+- `npm test`: 31 unit/contract tests and 28 Playwright tests passed.
+- `npm run build`: passed; `dist/` emitted. Main JS is 9.27 kB gzip and CSS is
+  4.52 kB gzip, below the 200 kB / 50 kB budgets.
+- Fresh clone of pushed artifact commit: every one of the 18 claim commands
+  passed separately.
+- Local and live `verify-url.sh`: passed with correct title, `lang=en`, one h1,
+  main landmark, alt text, and no console/page errors.
+- Accessibility: the installed `@axe-core/playwright` checks passed empty,
+  configured, Privacy, and Terms states with zero serious/critical violations.
+  The standalone axe CLI could not pair its downloaded ChromeDriver 152 with
+  the required preinstalled Chromium 145, so the pinned Playwright integration
+  was used as allowed by the accessibility baseline.
+- Privacy/offline: same-origin-only request interception, no upload/persistence,
+  isolated demo deletion, service-worker install/update, and offline demo reload
+  all passed locally and live.
+- Live Playwright: 28/28 passed against the production URL after deployment.
+- Live routes: `/`, `/demo`, `/privacy/`, `/terms/` returned 200; an unknown
+  route returned the styled page with HTTP 404.
+- Live Lighthouse mobile: performance 100, accessibility 100, best practices
+  100, SEO 100; LCP 1.05 s, CLS 0, TBT 48 ms.
 
-## Work left
+Evidence files are under `.factory/evidence/`, including local/live verification
+JSON, Lighthouse JSON, and desktop/mobile screenshots.
 
-Resolve F-1-1 through F-1-16. Open work covers claims registration/copy, route
-focus, shared header/footer structure, external-link labeling, terminology,
-jargon, one demo action label, and two parser errors without a next step.
+## Deployment
 
-After repairs, repeat the complete review rather than checking only the diff.
+Built `dist/` was deployed through `/opt/fleet/lib/deploy-static.sh` to the
+existing `sf-health-export-cleaner` Azure Static Web App. Deployment ID:
+`ebea2199-7b6b-48b2-ac90-f3d2f2a7c976`. The custom domain reported `Ready`,
+served `compiled/main-BIgD7EQA.js`, and passed cold verification.
+
+## Known gaps and next steps
+
+None. No review finding or product gap is left unresolved.

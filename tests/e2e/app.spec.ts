@@ -40,6 +40,7 @@ test('@claim:sample-demo loads sample data in a separate disposable preference n
   expect(databases).not.toContain('health-export-cleaner');
   await page.getByRole('button', { name: 'Reset demo' }).click();
   await expect(page.getByRole('radio', { name: /Day/ })).toBeChecked();
+  await expect(page.getByText('2026-08-28 · day only')).toBeVisible();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
   await expect(page.getByRole('link', { name: 'Clean my own file' })).toBeVisible();
 

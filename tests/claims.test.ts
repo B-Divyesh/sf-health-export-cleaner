@@ -15,6 +15,7 @@ const html = ['index.html', 'privacy/index.html', 'terms/index.html', '404.html'
   .map((path) => readFileSync(path, 'utf8'))
   .join('\n');
 const readme = readFileSync('README.md', 'utf8');
+const parser = readFileSync('src/parser.ts', 'utf8');
 
 function occurrences(source: string, value: string): number {
   return source.split(value).length - 1;
@@ -58,5 +59,18 @@ describe('visitor claims contract', () => {
     for (const id of ['no-setup', 'free-source', 'first-party-runtime', 'csv-conventions', 'apple-record-scope']) {
       expect(claims.some((claim) => claim.id === id), id).toBe(true);
     }
+  });
+
+  it('keeps every adversarial review wording repair literal', () => {
+    expect(html).toContain('2026-08-28 · day only');
+    expect(html).toContain('An update is ready.');
+    expect(html).toContain('Clean my own file');
+    expect(html).toContain('Source code on GitHub (external site)');
+    expect(`${html}\n${readme}`).not.toMatch(/safest default|safer, newer|smaller health file|bounded copy|cleaned sample export|date boundary|plain-language provenance|provenance\/risk|browser matrix|structural limits|resource-safety measures|Start for real/i);
+    expect(readme).toContain('same browser checks against the deployed app');
+    expect(readme).not.toContain('There are no runtime API keys or services.');
+    expect(parser).toContain('The CSV has headers but no data rows. Export a CSV with at least one health record, then try again.');
+    expect(parser).toContain('This XML contains a declaration the cleaner cannot read. Export a fresh file from Apple Health and try again.');
+    expect(parser).toContain('This file is missing the Apple Health data section. Export it again from Apple Health, then try the new file.');
   });
 });
