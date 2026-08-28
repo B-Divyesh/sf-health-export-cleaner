@@ -102,10 +102,67 @@ test('has no serious accessibility violations in the empty and configured states
   await page.goto('/');
   let results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
+  results = await new AxeBuilder({ page }).withRules(['label-content-name-mismatch']).analyze();
+  expect(results.violations).toEqual([]);
   await page.getByRole('button', { name: 'Try a safe sample' }).click();
   await expect(page.getByText('Source ready')).toBeVisible();
   results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
+  for (const path of ['/privacy/', '/terms/']) {
+    await page.goto(path);
+    await expect(page.locator('h1')).toHaveCount(1);
+    results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
+  }
+});
+
+test('supports a keyboard-only path through cleaning and download', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to cleaner' })).toBeFocused();
+  expect(await page.getByRole('link', { name: 'Skip to cleaner' }).evaluate((element) => getComputedStyle(element).outlineWidth)).toBe('3px');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#file-input')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Try a safe sample' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Source ready')).toBeVisible();
+
+  let reachedDownload = false;
+  for (let index = 0; index < 60; index += 1) {
+    await page.keyboard.press('Tab');
+    reachedDownload = await page.evaluate(() => document.activeElement?.id === 'download-button');
+    if (reachedDownload) break;
+  }
+  expect(reachedDownload).toBe(true);
+  const downloadPromise = page.waitForEvent('download');
+  await page.keyboard.press('Enter');
+  await expect(downloadPromise).resolves.toBeTruthy();
+});
+
+test('does not send or persist uploaded health data', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.locator('#file-input').setInputFiles({
+    name: 'private-secret.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('type,date,value,patientId\nHeartRate,2026-08-28,SECRET-HEALTH,SECRET-ID')
+  });
+  await expect(page.getByText('Source ready')).toBeVisible();
+  await page.waitForTimeout(100);
+  expect(requests).toEqual([]);
+  const storageText = await page.evaluate(async () => {
+    const cacheKeys = await caches.keys();
+    const cacheUrls = (await Promise.all(cacheKeys.map(async (key) => (await caches.open(key)).keys()))).flat().map((request) => request.url);
+    const databases = 'databases' in indexedDB ? await indexedDB.databases() : [];
+    return JSON.stringify({ cacheUrls, databases });
+  });
+  expect(storageText).not.toMatch(/SECRET-HEALTH|SECRET-ID|private-secret/);
+  await page.reload();
+  await expect(page.locator('#configure-panel')).toBeHidden();
 });
 
 test('remains usable offline after installation', async ({ page, context }) => {
@@ -118,6 +175,17 @@ test('remains usable offline after installation', async ({ page, context }) => {
   await expect(page.getByText('Offline · cleaner ready')).toBeAttached();
   await page.getByRole('button', { name: 'Try a safe sample' }).click();
   await expect(page.getByText('3 rows kept')).toBeVisible();
+});
+
+test('announces and activates an available service-worker update', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.evaluate(() => navigator.serviceWorker.register('/sw.js?update-regression=1', { scope: '/' }));
+  await expect(page.locator('#update-toast')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Refresh now' }).click();
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByRole('button', { name: 'Try a safe sample' })).toBeVisible();
 });
 
 test('is usable at a 390px mobile viewport', async ({ page }) => {

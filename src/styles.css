@@ -22,7 +22,7 @@ body { margin: 0; min-width: 320px; background-color: var(--concrete); backgroun
 button, input { font: inherit; }
 button, label, input { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-underline-offset: 4px; }
-button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--moss); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible, [tabindex="0"]:focus-visible { outline: 3px solid var(--moss); outline-offset: 3px; }
 .skip-link { position: fixed; z-index: 20; top: 8px; left: 8px; padding: 10px 14px; color: white; background: var(--moss-dark); transform: translateY(-150%); }
 .skip-link:focus { transform: none; }
 
