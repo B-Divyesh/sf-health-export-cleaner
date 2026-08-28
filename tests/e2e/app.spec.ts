@@ -174,10 +174,25 @@ test('@claim:removal-receipt previews exact kept, omitted, and removed-field cou
   await expect(page.locator('#removed-fields-detail')).toHaveText('sourceName, device, latitude');
 });
 
-test('@claim:strict-parser rejects malformed CSV and unrelated XML with recovery guidance', async ({ page }) => {
+test('@claim:strict-parser rejects malformed CSV and invalid or unrelated XML with recovery guidance', async ({ page }) => {
   await page.goto('/demo');
   await page.locator('#file-input').setInputFiles({ name: 'broken.csv', mimeType: 'text/csv', buffer: Buffer.from('type,value\nHeartRate,"72') });
   await expect(page.locator('#error-box')).toContainText('unclosed quoted field');
+  await page.locator('#file-input').setInputFiles({
+    name: 'closing-quote-junk.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('type,date,value\nHeartRate,2026-08-28,"72"trailing-junk')
+  });
+  await expect(page.locator('#error-box')).toContainText('text after a closing quote');
+  await page.locator('#file-input').setInputFiles({
+    name: 'incomplete.xml', mimeType: 'application/xml',
+    buffer: Buffer.from('<HealthData><Record type="HKQuantityTypeIdentifierHeartRate" value="72"/>')
+  });
+  await expect(page.locator('#error-box')).toContainText('malformed');
+  await page.locator('#file-input').setInputFiles({
+    name: 'comment-only.xml', mimeType: 'application/xml',
+    buffer: Buffer.from('<HealthData><!-- <Record type="COMMENT-ONLY-SECRET" value="72"/> --></HealthData>')
+  });
+  await expect(page.locator('#error-box')).toContainText('No Apple Health Record elements');
   await page.locator('#file-input').setInputFiles({ name: 'unrelated.xml', mimeType: 'application/xml', buffer: Buffer.from('<records><Record type="x"/></records>') });
   await expect(page.locator('#error-box')).toContainText('HealthData element is missing');
   await page.getByRole('button', { name: 'Try it with sample data' }).click();
@@ -240,7 +255,9 @@ test('@claim:csv-conventions recognizes recorded_at, fails closed on missing dat
       'HeartRate,2026-08-22,65,outside'
     ].join('\n'))
   });
-  await expect(page.getByText('Source ready')).toBeVisible();
+  // /demo starts with a ready sample, so wait for this intake to replace it
+  // before setting boundaries. This keeps the claim test tied to its fixture.
+  await expect(page.locator('#source-name')).toHaveText('bounded.csv');
   await page.locator('#start-date').fill('2026-08-20');
   await page.locator('#end-date').fill('2026-08-20');
   await expect(page.locator('#kept-summary')).toHaveText('1 row kept');

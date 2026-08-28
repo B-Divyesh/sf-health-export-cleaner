@@ -35,6 +35,11 @@ describe('CSV parsing', () => {
     expect(() => parseHealthCsv('type,value\nHeartRate,"72')).toThrow(/unclosed quoted field/i);
   });
 
+  it('rejects text after a closing quoted value instead of silently repairing it', () => {
+    expect(() => parseHealthCsv('type,date,value\nHeartRate,2026-08-28,"72"trailing-junk'))
+      .toThrow(/text after a closing quote/i);
+  });
+
   it('groups a generic CSV without a type column and reports it', () => {
     const parsed = parseHealthCsv('date,value\n2026-08-28,120');
     expect(parsed.records[0].type).toBe('CSV record');
@@ -76,6 +81,26 @@ describe('Apple Health XML parsing', () => {
 
   it('rejects unrelated XML', () => {
     expect(() => parseHealthXml('<records><Record type="x"/></records>')).toThrow(/HealthData element is missing/);
+  });
+
+  it('rejects an incomplete HealthData document before creating any records', () => {
+    expect(() => parseHealthXml('<HealthData><Record type="HKQuantityTypeIdentifierHeartRate" value="72"/>'))
+      .toThrow(/malformed.*unclosed <HealthData>/i);
+  });
+
+  it('does not treat Record-shaped XML comments as health records', () => {
+    expect(() => parseHealthXml('<HealthData><!-- <Record type="COMMENT-ONLY-SECRET" value="72"/> --></HealthData>'))
+      .toThrow(/No Apple Health Record elements/i);
+    const parsed = parseHealthXml('<HealthData><!-- <Record type="COMMENT-ONLY-SECRET"/> --><Record type="HKQuantityTypeIdentifierHeartRate" value="72"/></HealthData>');
+    expect(parsed.records).toHaveLength(1);
+    expect(JSON.stringify(parsed)).not.toContain('COMMENT-ONLY-SECRET');
+  });
+
+  it('fails bounded malformed XML nesting without scanning all unclosed Record tags', () => {
+    const malformed = `<HealthData>${'<Record type="x">'.repeat(40_000)}`;
+    const started = performance.now();
+    expect(() => parseHealthXml(malformed)).toThrow(/too deeply nested/i);
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });
 

@@ -99,10 +99,10 @@
   },
   {
     "id": "strict-parser",
-    "claim": "The parser uses structural limits and rejects malformed quoted CSV input or unrelated XML.",
+    "claim": "The parser uses structural limits and rejects malformed quoted CSV input and invalid or unrelated XML.",
     "where": "README",
     "test": "npm run test:e2e -- --grep @claim:strict-parser",
-    "sandbox": "fresh /demo context uploads malformed CSV then unrelated XML and asserts the specific errors and sample recovery"
+    "sandbox": "fresh /demo context uploads unclosed and trailing-text quoted CSV, incomplete and comment-only Apple XML, then unrelated XML; asserts specific errors and sample recovery"
   },
   {
     "id": "preference-portability",

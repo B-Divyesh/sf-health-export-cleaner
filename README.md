@@ -82,8 +82,8 @@ included. <!-- claim:first-party-runtime --> Health records remain in page memor
 close. <!-- claim:local-processing --> See the in-product [privacy notice](https://health-export-cleaner.sociobot.in/privacy/)
 for details.
 
-The parser uses structural limits and rejects malformed quoted CSV input or
-unrelated XML. These controls are resource-safety measures, not a guarantee
+The parser uses structural limits and rejects malformed quoted CSV input and
+invalid or unrelated XML. These controls are resource-safety measures, not a guarantee
 that a vendor-defined column is non-sensitive. <!-- claim:strict-parser -->
 
 ## License
