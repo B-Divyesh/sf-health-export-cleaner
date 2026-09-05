@@ -1,14 +1,14 @@
-# Verification 8 handoff
+# Review 4 handoff
 
 ## Status
 
-**PASS.** Independent verification found zero product findings and zero
-untested public claims for the live Health Export Cleaner.
+**PASS.** Review 4 found zero product findings and zero untested public claims
+for the live Health Export Cleaner.
 
 - Implementation: `714134a8a37b265e1ad94b12d652c5fcdab9ddfb`
 - Documentation: `1c00a90af4a189f2c3711a09d2d9b4195356d648`
 - Live URL: <https://health-export-cleaner.sociobot.in>
-- Full report: [.factory/verification-8.md](verification-8.md)
+- Full report: [.factory/review-4.md](review-4.md)
 
 ## What was verified
 
@@ -39,8 +39,7 @@ PLAYWRIGHT_BASE_URL=https://health-export-cleaner.sociobot.in \
 ```
 
 Run every `test` command listed in `.factory/claims.json` separately for the
-claims gate. Evidence from this verification is under
-`.factory/evidence/verification-8/`.
+claims gate. Fresh reviewer evidence is in `/work/.evidence/review-4-live/`.
 
 ## Known gaps
 
