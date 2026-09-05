@@ -4,7 +4,7 @@
     "claim": "Try a sample health export without saving it to real cleaner preferences.",
     "where": "landing action and demo banner",
     "test": "npm run test:e2e -- --grep @claim:sample-demo",
-    "sandbox": "fresh browser context opens /demo and /?demo=1; assert the sample and banner, reset it, verify the demo: preference namespace, then leave and verify it is discarded"
+    "sandbox": "fresh browser context seeds a uniquely marked real preference, opens /demo and /?demo=1, holds demo IndexedDB deletion blocked, then races Reset with exit; assert the real record is byte-for-byte unchanged and the demo database is discarded"
   },
   {
     "id": "supported-sources",

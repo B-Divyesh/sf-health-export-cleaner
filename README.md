@@ -20,7 +20,8 @@ after its first visit. <!-- claim:local-processing --> <!-- claim:preference-por
 Open `/demo` (or `/?demo=1`) to load sample wearable records immediately. Demo
 preferences use a separate `demo:health-export-cleaner` IndexedDB database;
 they never touch the normal cleaner preferences. The demo banner can reset the
-sample or discard its preference before cleaning your own file. See
+sample or discard its preference before cleaning your own file. Reset and exit
+finish demo cleanup before the normal cleaner opens. See
 [.factory/demo.md](.factory/demo.md) for the sample and reset details. <!-- claim:sample-demo -->
 
 The cleaner needs no account or installation. <!-- claim:no-setup -->

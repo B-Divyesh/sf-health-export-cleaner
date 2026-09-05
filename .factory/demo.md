@@ -12,4 +12,7 @@ normal cleaner.
 Health records are only page memory in either mode. The demo's timestamp
 preference is isolated in IndexedDB database `demo:health-export-cleaner`; the
 normal cleaner uses `health-export-cleaner`. Demo mode never reads or writes
-the normal database.
+the normal database. Each page binds its preference database once when it
+opens. Reset and exit cancel unfinished sample inspection, wait for demo writes,
+and finish deleting the demo database before the normal cleaner opens. If
+another demo tab blocks deletion, the banner explains that it is waiting.

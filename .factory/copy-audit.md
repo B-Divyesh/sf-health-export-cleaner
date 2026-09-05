@@ -1,4 +1,4 @@
-# Landing-copy audit — 2026-08-28
+# Landing-copy audit — 2026-09-05
 
 Every visitor-facing sentence and action on the landing route was extracted
 after the repair. All are 22 words or fewer and use none of the banned terms.
@@ -70,6 +70,9 @@ after the repair. All are 22 words or fewer and use none of the banned terms.
 | It stays separate from your cleaner preferences. | 7 | Pass |
 | Reset demo | 2 | Pass |
 | Clean my own file | 4 | Pass |
+| Resetting the sample… | 3 | Pass |
+| Opening the cleaner… | 3 | Pass |
+| Waiting for another demo tab to close… | 7 | Pass |
 | An update is ready. | 4 | Pass |
 | Refresh now | 2 | Pass |
 | Clean a health export before you share it. | 9 | Pass |

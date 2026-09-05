@@ -30,30 +30,91 @@ async function downloadBytes(download: import('@playwright/test').Download): Pro
   return bytes;
 }
 
-test('@claim:sample-demo loads sample data in a separate disposable preference namespace', async ({ page }) => {
+test('@claim:sample-demo keeps an existing real preference unchanged through blocked reset and exit', async ({ page }) => {
+  const realPreference = { timePrecision: 'exact', marker: 'REAL-PREFERENCE-MUST-STAY', nested: { revision: 7 } };
+  await page.goto('/');
+  await page.evaluate(async (preference) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('health-export-cleaner', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('preferences');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction('preferences', 'readwrite');
+    transaction.objectStore('preferences').put(preference, 'cleaner');
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    database.close();
+  }, realPreference);
+
   await page.goto('/demo');
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
   await page.getByRole('radio', { name: /Hour/ }).check();
   await expect.poll(() => page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name))).toContain('demo:health-export-cleaner');
   const databases = await page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name));
-  expect(databases).not.toContain('health-export-cleaner');
+  expect(databases).toContain('health-export-cleaner');
   await page.getByRole('button', { name: 'Reset demo' }).click();
   await expect(page.getByRole('radio', { name: /Day/ })).toBeChecked();
-  await expect(page.getByText('2026-08-28 · day only')).toBeVisible();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
-  await expect(page.getByRole('link', { name: 'Clean my own file' })).toBeVisible();
+  await expect(page.locator('#demo-message')).toHaveText('Change the sample freely. It stays separate from your cleaner preferences.');
+  await expect(page.getByText('3 rows kept')).toBeVisible();
 
   await page.goto('/?demo=1');
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
   await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await page.getByRole('radio', { name: /Hour/ }).check();
+  await expect.poll(() => page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('demo:health-export-cleaner');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const request = database.transaction('preferences').objectStore('preferences').get('cleaner');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return value;
+  })).toEqual({ timePrecision: 'hour' });
+  await page.evaluate(async () => {
+    const blocker = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('demo:health-export-cleaner');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    blocker.onversionchange = () => { /* Keep deletion blocked until the test releases this connection. */ };
+    (window as typeof window & { demoDatabaseBlocker?: IDBDatabase }).demoDatabaseBlocker = blocker;
+  });
   await page.getByRole('button', { name: 'Reset demo' }).click();
-  await expect(page.locator('#source-name')).toHaveText('sample-health-export.csv');
+  await expect(page.locator('#demo-message')).toHaveText('Waiting for another demo tab to close…');
   await page.getByRole('link', { name: 'Clean my own file' }).click();
+  await page.evaluate(() => {
+    (window as typeof window & { demoDatabaseBlocker?: IDBDatabase }).demoDatabaseBlocker?.close();
+  });
   await expect(page).toHaveURL('/');
   await expect(page.locator('#demo-banner')).toBeHidden();
   await expect(page.locator('#configure-panel')).toBeHidden();
   await expect.poll(() => page.evaluate(async () => (await indexedDB.databases()).map((database) => database.name))).not.toContain('demo:health-export-cleaner');
+  const storedRealPreference = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('health-export-cleaner');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const request = database.transaction('preferences').objectStore('preferences').get('cleaner');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return value;
+  });
+  expect(JSON.stringify(storedRealPreference)).toBe(JSON.stringify(realPreference));
 });
 
 test('@claim:supported-sources opens CSV and Apple Health XML from the demo entry point', async ({ page }) => {

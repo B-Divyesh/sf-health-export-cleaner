@@ -3,7 +3,7 @@ import { createZip } from './archive';
 import { binTimestamp, cleanDataset, fileDetailsAndRiskText, getDateBounds, isSensitiveField, isTimestampField, toCsv } from './cleaner';
 import { setupRouteFocus } from './route-focus';
 import { formatBytes, parseHealthFile } from './parser';
-import { clearDemoPreferences, loadPreferences, savePreferences, useDemoStorage } from './storage';
+import { createPreferenceStorage } from './storage';
 import type { CleanerSettings, CleanResult, Dataset, TimePrecision } from './types';
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -18,12 +18,14 @@ const startDate = byId<HTMLInputElement>('start-date');
 const endDate = byId<HTMLInputElement>('end-date');
 const dateError = byId<HTMLElement>('date-error');
 const isDemo = window.location.pathname === '/demo' || new URLSearchParams(window.location.search).get('demo') === '1';
-useDemoStorage(isDemo);
+const preferenceStorage = createPreferenceStorage(isDemo);
 
 let dataset: Dataset | null = null;
 let result: CleanResult | null = null;
 let updateWorker: ServiceWorker | null = null;
 let refreshingForUpdate = false;
+let inspectionSequence = 0;
+let preferenceWritesEnabled = true;
 
 function setBusy(busy: boolean): void {
   progress.hidden = !busy;
@@ -32,18 +34,29 @@ function setBusy(busy: boolean): void {
 }
 
 async function inspectFile(file: File): Promise<void> {
+  const inspection = ++inspectionSequence;
   errorBox.hidden = true;
   setBusy(true);
   await new Promise((resolve) => window.setTimeout(resolve, 40));
   try {
-    dataset = await parseHealthFile(file);
-    renderDataset(dataset);
+    const inspected = await parseHealthFile(file);
+    if (inspection !== inspectionSequence) return;
+    dataset = inspected;
+    renderDataset(inspected);
   } catch (error) {
+    if (inspection !== inspectionSequence) return;
     dataset = null;
     configurePanel.hidden = true;
     errorBox.textContent = error instanceof Error ? error.message : 'The file could not be read. Try exporting it again.';
     errorBox.hidden = false;
-  } finally { setBusy(false); }
+  } finally {
+    if (inspection === inspectionSequence) setBusy(false);
+  }
+}
+
+function cancelInspection(): void {
+  inspectionSequence += 1;
+  setBusy(false);
 }
 
 function renderDataset(source: Dataset): void {
@@ -159,7 +172,7 @@ function updatePreview(): void {
   const download = byId<HTMLButtonElement>('download-button');
   download.disabled = invalidDate || !result.rows.length || !result.headers.length;
   document.querySelector('[data-step="3"]')?.classList.toggle('is-active', Boolean(result.rows.length && result.headers.length));
-  void savePreferences({ timePrecision: settings.timePrecision });
+  if (preferenceWritesEnabled) void preferenceStorage.save({ timePrecision: settings.timePrecision });
 }
 
 function renderPreviewTable(output: CleanResult): void {
@@ -190,11 +203,11 @@ fileInput.addEventListener('change', () => { const file = fileInput.files?.[0]; 
 ['dragleave', 'drop'].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
 dropZone.addEventListener('drop', (event) => { const file = event.dataTransfer?.files[0]; if (file) void inspectFile(file); });
 
-function loadSample(): void {
+function loadSample(): Promise<void> {
   const sample = 'type,startDate,endDate,value,unit,sourceName,device,latitude,notes\nHeartRate,2026-08-20 08:12:41 +0000,2026-08-20 08:12:41 +0000,72,count/min,Watch,Model X,51.5072,morning reading\nStepCount,2026-08-21 14:45:09 +0000,2026-08-21 15:00:00 +0000,1240,count,Phone,Phone X,51.5080,lunch walk\nHeartRate,2026-08-25 21:03:12 +0000,2026-08-25 21:03:12 +0000,66,count/min,Watch,Model X,51.5090,resting';
-  void inspectFile(new File([sample], 'sample-health-export.csv', { type: 'text/csv' }));
+  return inspectFile(new File([sample], 'sample-health-export.csv', { type: 'text/csv' }));
 }
-byId('sample-button').addEventListener('click', loadSample);
+byId('sample-button').addEventListener('click', () => { void loadSample(); });
 
 form.addEventListener('input', updatePreview);
 byId('types-all').addEventListener('click', () => { form.querySelectorAll<HTMLInputElement>('input[name="recordType"]').forEach((input) => { input.checked = true; }); updatePreview(); });
@@ -237,7 +250,7 @@ function updateNetworkStatus(): void {
 }
 window.addEventListener('online', updateNetworkStatus); window.addEventListener('offline', updateNetworkStatus); updateNetworkStatus();
 
-void loadPreferences().then((preferences) => {
+void preferenceStorage.load().then((preferences) => {
   if (!preferences) return;
   const radio = form.querySelector<HTMLInputElement>(`input[name="precision"][value="${preferences.timePrecision}"]`); if (radio) radio.checked = true;
 });
@@ -249,20 +262,49 @@ if (isDemo) {
   document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', 'Demo — Health Export Cleaner');
   document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', 'Demo — Health Export Cleaner');
   const banner = byId<HTMLElement>('demo-banner');
+  const resetButton = byId<HTMLButtonElement>('reset-demo');
+  const startReal = byId<HTMLAnchorElement>('start-real');
+  const demoMessage = byId<HTMLElement>('demo-message');
+  const normalDemoMessage = demoMessage.textContent ?? '';
+  let leavingDemo = false;
+  let resetOperation: Promise<void> | null = null;
   banner.hidden = false;
-  byId('reset-demo').addEventListener('click', async () => {
-    await clearDemoPreferences();
-    useDemoStorage(true);
-    form.querySelector<HTMLInputElement>('input[name="precision"][value="day"]')!.checked = true;
-    loadSample();
+  resetButton.addEventListener('click', () => {
+    if (resetOperation || leavingDemo) return;
+    preferenceWritesEnabled = false;
+    cancelInspection();
+    resetButton.disabled = true;
+    demoMessage.textContent = 'Resetting the sample…';
+    resetOperation = (async () => {
+      await preferenceStorage.clear({ onBlocked: () => { demoMessage.textContent = 'Waiting for another demo tab to close…'; } });
+      if (leavingDemo) return;
+      form.querySelector<HTMLInputElement>('input[name="precision"][value="day"]')!.checked = true;
+      await loadSample();
+      if (leavingDemo) return;
+      await preferenceStorage.save({ timePrecision: 'day' });
+      demoMessage.textContent = normalDemoMessage;
+    })().finally(() => {
+      resetOperation = null;
+      if (!leavingDemo) {
+        preferenceWritesEnabled = true;
+        resetButton.disabled = false;
+      }
+    });
   });
-  byId<HTMLAnchorElement>('start-real').addEventListener('click', async (event) => {
+  startReal.addEventListener('click', async (event) => {
     event.preventDefault();
-    useDemoStorage(false);
-    await clearDemoPreferences();
+    if (leavingDemo) return;
+    leavingDemo = true;
+    preferenceWritesEnabled = false;
+    cancelInspection();
+    resetButton.disabled = true;
+    startReal.setAttribute('aria-disabled', 'true');
+    demoMessage.textContent = 'Opening the cleaner…';
+    await resetOperation;
+    await preferenceStorage.clear({ onBlocked: () => { demoMessage.textContent = 'Waiting for another demo tab to close…'; } });
     window.location.assign('/');
   });
-  loadSample();
+  void loadSample();
 }
 
 setupRouteFocus(isDemo);
