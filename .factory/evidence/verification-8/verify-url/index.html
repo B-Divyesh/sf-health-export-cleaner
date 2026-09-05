@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#e8e5dc" />
+    <meta name="description" content="Minimize Apple Health XML and health CSV exports locally. Remove identifiers, locations, unwanted record types, and precise timestamps before sharing." />
+    <link rel="canonical" href="https://health-export-cleaner.sociobot.in/" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Health Export Cleaner — minimize health files locally" />
+    <meta property="og:description" content="Make a smaller health export to review before sharing. Files stay in your browser." />
+    <meta property="og:url" content="https://health-export-cleaner.sociobot.in/" />
+    <meta property="og:image" content="https://health-export-cleaner.sociobot.in/assets/health-export-cleaner-social.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Health Export Cleaner — minimize health files locally" />
+    <meta name="twitter:description" content="Make a smaller health export to review before sharing. Files stay in your browser." />
+    <meta name="twitter:image" content="https://health-export-cleaner.sociobot.in/assets/health-export-cleaner-social.jpg" />
+    <title>Health Export Cleaner — minimize health files locally</title>
+    <script type="module" crossorigin src="/compiled/main-DZMC-E5F.js"></script>
+    <link rel="modulepreload" crossorigin href="/compiled/route-focus-D-Ls7Kti.js">
+    <link rel="stylesheet" crossorigin href="/compiled/main-D7cEXkQy.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to cleaner</a>
+    <header class="site-header">
+      <a class="wordmark" href="/">
+        <span class="wordmark-mark">H//</span>
+        <span>Health Export Cleaner</span>
+      </a>
+      <div class="header-tools">
+        <nav class="site-nav" aria-label="Primary"><a href="/demo">Demo</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
+        <span class="local-badge" data-claim="local-processing"><span aria-hidden="true">●</span> Local only</span>
+      </div>
+    </header>
+    <span id="network-status" class="visually-hidden" role="status">Checking connection</span>
+    <div id="route-status" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+    <main id="main" tabindex="-1">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">A private cleaner for health exports</p>
+          <h1 id="page-title" tabindex="-1">Clean a health export<br /><span>before you share it.</span></h1>
+          <p class="lede" data-claim="identifier-removal">For wearable users who need a cleaned copy without common identifiers or location details.</p>
+          <div class="hero-action" data-claim="sample-demo"><a class="primary-button" href="/demo">Try it with sample data</a><span>See a cleaned copy immediately.</span></div>
+          <ul class="promise-list" aria-label="Privacy promises">
+            <li data-claim="supported-sources"><span aria-hidden="true">01</span> Opens CSV and Apple Health XML</li>
+            <li data-claim="local-processing"><span aria-hidden="true">02</span> Health records stay in this browser tab</li>
+            <li data-claim="offline-reload"><span aria-hidden="true">03</span> Works offline after the first visit</li>
+          </ul>
+        </div>
+        <figure class="hero-figure">
+          <picture>
+            <source media="(max-width: 760px)" srcset="/assets/sorting-bench-768.webp" type="image/webp" />
+            <source srcset="/assets/sorting-bench-1280.avif" type="image/avif" />
+            <source srcset="/assets/sorting-bench-1280.webp" type="image/webp" />
+            <img src="/assets/sorting-bench-1280.jpg" width="1280" height="853" alt="Paper health records pass through a concrete sorting machine; location markers are trapped while a small neat stack exits." fetchpriority="high" decoding="async" />
+          </picture>
+          <figcaption data-claim="local-processing clean-package">Your file enters the browser. Only the cleaned copy comes out.</figcaption>
+        </figure>
+      </section>
+
+      <section class="bench" aria-labelledby="cleaner-title">
+        <div class="section-kicker">The cleaning bench</div>
+        <h2 id="cleaner-title">Make a cleaned copy</h2>
+
+        <ol class="step-rail" aria-label="Cleaner progress">
+          <li class="is-active" data-step="1"><span>1</span><strong>Inspect</strong><small>Choose a source</small></li>
+          <li data-step="2"><span>2</span><strong>Minimize</strong><small>Set the date range</small></li>
+          <li data-step="3"><span>3</span><strong>Export</strong><small>Review and save</small></li>
+        </ol>
+
+        <div class="work-area">
+          <section id="upload-panel" class="work-panel" aria-labelledby="upload-title">
+            <p class="panel-number" aria-hidden="true">01 / INTAKE</p>
+            <h3 id="upload-title">Place an export on the bench</h3>
+            <p class="measure" data-claim="supported-sources local-processing safety-limits">Supported: comma-separated CSV and Apple Health <code>export.xml</code>. Files stay in this browser tab and are limited to 100 MB / 500,000 records for safety.</p>
+            <label id="drop-zone" class="drop-zone" for="file-input">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 5h22l10 10v28H8zM29 5v11h11M16 26h16M24 18v16" /></svg>
+              <span class="drop-title">Choose or drop a health export</span>
+              <span class="drop-help">CSV or XML · maximum 100 MB</span>
+              <input id="file-input" type="file" accept=".csv,.xml,text/csv,application/xml,text/xml" />
+            </label>
+            <div class="sample-row">
+              <button id="sample-button" class="text-button" type="button">Try it with sample data</button>
+              <span data-claim="no-setup">No account or installation required.</span>
+            </div>
+            <div id="parse-progress" class="progress-state" role="status" aria-live="polite" hidden>
+              <span class="spinner" aria-hidden="true"></span>
+              <div><strong>Inspecting locally…</strong><span id="progress-detail">Reading structure and fields</span></div>
+            </div>
+            <div id="error-box" class="message error" role="alert" hidden></div>
+          </section>
+
+          <section id="configure-panel" class="work-panel" aria-labelledby="configure-title" hidden>
+            <div class="source-strip">
+              <div><span class="stamp">Source ready</span><h3 id="source-name">health-export.csv</h3></div>
+              <dl class="source-stats">
+                <div><dt>Format</dt><dd id="source-format">CSV</dd></div>
+                <div><dt>Records</dt><dd id="source-count">0</dd></div>
+                <div><dt>Size</dt><dd id="source-size">0 KB</dd></div>
+                <div><dt>Date span</dt><dd id="source-span">Not detected</dd></div>
+              </dl>
+              <button id="clear-button" class="text-button danger-link" type="button">Remove source</button>
+            </div>
+            <div id="source-warnings" class="message warning" role="status" hidden></div>
+
+            <form id="cleaner-form">
+              <fieldset class="control-group">
+                <legend><span>1</span> Set the date range</legend>
+                <p data-claim="csv-conventions minimization-controls">When either date is set, only rows with a usable date inside this range stay in the copy. Rows without a usable date are left out.</p>
+                <div class="date-grid">
+                  <label for="start-date">From<input id="start-date" name="startDate" type="date" /></label>
+                  <label for="end-date">Through<input id="end-date" name="endDate" type="date" /></label>
+                </div>
+                <p id="date-error" class="field-error" role="alert" hidden>The start date must be on or before the end date.</p>
+              </fieldset>
+
+              <fieldset class="control-group">
+                <legend><span>2</span> Choose record types</legend>
+                <div class="group-actions"><button id="types-all" class="text-button" type="button">Select all</button><button id="types-none" class="text-button" type="button">Select none</button></div>
+                <div id="type-options" class="check-grid"></div>
+              </fieldset>
+
+              <fieldset class="control-group">
+                <legend><span>3</span> Choose fields</legend>
+                <p data-claim="identifier-removal">Common identifiers, device details, GPS, location, and route fields are locked out. Review unfamiliar fields yourself.</p>
+                <div class="group-actions"><button id="fields-safe" class="text-button" type="button">Keep all available</button><button id="fields-minimum" class="text-button" type="button">Keep essentials only</button></div>
+                <div id="field-options" class="field-list"></div>
+              </fieldset>
+
+              <fieldset class="control-group">
+                <legend><span>4</span> Reduce timestamp precision</legend>
+                <div class="radio-grid">
+                  <label><input type="radio" name="precision" value="day" checked /><span><strong>Day</strong><small>2026-08-28 · day only</small></span></label>
+                  <label><input type="radio" name="precision" value="hour" /><span><strong>Hour</strong><small>2026-08-28 14:00</small></span></label>
+                  <label data-claim="exact-timestamp"><input type="radio" name="precision" value="exact" /><span><strong>Exact</strong><small>Keeps the source timestamp</small></span></label>
+                </div>
+              </fieldset>
+            </form>
+
+            <section class="review-block" aria-labelledby="review-title">
+              <div class="review-heading"><div><p class="panel-number">03 / OUTPUT CHECK</p><h3 id="review-title">Review what leaves</h3></div><span id="output-count" class="big-count">0 rows</span></div>
+              <div class="receipt-grid" data-claim="removal-receipt">
+                <div class="receipt kept"><span aria-hidden="true">✓</span><div><strong id="kept-summary">0 rows kept</strong><small id="kept-detail">inside your date range</small></div></div>
+                <div class="receipt removed"><span aria-hidden="true">×</span><div><strong id="removed-summary">0 rows left out</strong><small id="removed-detail">by date or type</small></div></div>
+                <div class="receipt removed"><span aria-hidden="true">×</span><div><strong id="fields-summary">0 fields removed</strong><small id="removed-fields-detail" class="removed-fields-list">None</small></div></div>
+              </div>
+              <div class="preview-wrap" tabindex="0" aria-label="Scrollable cleaned data preview">
+                <table><caption>First five rows of the cleaned CSV</caption><thead id="preview-head"></thead><tbody id="preview-body"></tbody></table>
+              </div>
+              <p id="no-output" class="message warning" hidden>No records match this date range. Select at least one record type or widen the dates.</p>
+              <div class="risk-note"><strong>Minimized does not mean anonymous.</strong><p>Values, dates, rare conditions, and combinations of records can still identify someone. Inspect the preview and the downloaded file before sharing.</p></div>
+              <div class="download-bar">
+                <div data-claim="local-processing clean-package"><strong>Your records never leave this tab.</strong><span>One download ZIP: the cleaned CSV plus file details and a risk note.</span></div>
+                <button id="download-button" class="primary-button" type="button">Download cleaned copy <span aria-hidden="true">↓</span></button>
+              </div>
+              <details class="settings-tools" data-claim="preference-portability local-processing"><summary>Move cleaner preferences</summary><p>Export or import the timestamp preference only. Health records are never stored.</p><div><button id="export-settings" class="text-button" type="button">Export preferences</button><label class="text-button file-label" for="import-settings">Import preferences<input id="import-settings" type="file" accept="application/json,.json" /></label></div></details>
+            </section>
+          </section>
+        </div>
+      </section>
+
+      <section class="limits" aria-labelledby="limits-title">
+        <div><p class="section-kicker">Honest limits</p><h2 id="limits-title">A smaller file, not an anonymity guarantee</h2></div>
+        <div class="limits-copy"><p data-claim="identifier-removal">The cleaner recognizes common identifier and location column names, but vendors can invent new ones. Free text and unusual measurements may be identifying even when they are not labeled as such.</p><p data-claim="apple-record-scope">Apple Health support covers <code>&lt;Record&gt;</code> entries. Workouts, routes, clinical records, ActivitySummary, and nested metadata are intentionally not included in v1.</p></div>
+      </section>
+    </main>
+
+    <aside id="demo-banner" class="demo-banner" aria-label="Demo mode" hidden>
+      <strong data-claim="sample-demo">Demo — sample data, nothing is saved</strong>
+      <span id="demo-message" aria-live="polite">Change the sample freely. It stays separate from your cleaner preferences.</span>
+      <button id="reset-demo" class="text-button" type="button">Reset demo</button>
+      <a id="start-real" href="/">Clean my own file</a>
+    </aside>
+
+    <div id="update-toast" class="update-toast" role="status" data-claim="update-ready" hidden><span>An update is ready.</span><button id="update-button" type="button">Refresh now</button></div>
+
+    <footer>
+      <div class="footer-mark">H//</div>
+      <p data-claim="free-source">Clean a health export before you share it. Free to use under the MIT License. Built by Param Factory. Illustration generated for this product.</p>
+      <span class="build-id">v1.0.4</span>
+      <nav aria-label="Footer"><a href="/demo">Demo</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-health-export-cleaner" rel="noreferrer">Source code on GitHub (external site)</a></nav>
+    </footer>
+  </body>
+</html>
